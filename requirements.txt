@@ -1,0 +1,25 @@
+# Interface grafica
+PySide6>=6.6
+
+# Engines de download ([default] inclui yt-dlp-ejs, usado pelo YouTube, e os
+# extras recomendados: requests, websockets, brotli, certifi, mutagen...)
+yt-dlp[default]>=2025.11.12
+gallery-dl>=1.30
+
+# Modelos/configuracoes e HTTP
+pydantic>=2.7
+requests>=2.31
+
+# FFmpeg embutido (merge de audio/video e conversoes) e conversao de imagens
+imageio-ffmpeg>=0.5
+Pillow>=10.0
+
+# Conversor de arquivos (tela Converter / umd convert): PDF (inclui achatar), texto/Markdown e compactados
+pymupdf>=1.24
+pypdf>=6.0
+reportlab>=4.0
+markdown>=3.6
+py7zr>=0.22
+
+# Opcional: so para converter DE/PARA HEIC/HEIF (fotos do iPhone).
+# pillow-heif>=0.18
