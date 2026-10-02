@@ -1,0 +1,32 @@
+[
+  {
+    "version": "1.2.0",
+    "date": "2026-10-02",
+    "notes": "Novo: tela Editor (ferramentas de GIF, animações e vídeo) e comando umd edit",
+    "installer": "UniversalMediaTools-Setup-1.2.0.exe",
+    "size_mb": 116,
+    "sha256": "a2bda23c7efd793a0f8080565b469c331d63ce24c68aca68e52b1c99087271a5",
+    "download": "https://github.com/alabypedro/media-tools/releases/download/v1.2.0/UniversalMediaTools-Setup-1.2.0.exe",
+    "page": "https://github.com/alabypedro/media-tools/releases/tag/v1.2.0"
+  },
+  {
+    "version": "1.1.0",
+    "date": "2026-09-30",
+    "notes": "Conversor: suporte ao formato AVIF (converter de/para .avif).",
+    "installer": "UniversalMediaTools-Setup-1.1.0.exe",
+    "size_mb": 117,
+    "sha256": "28ae7d71dd885f5f35f8c7cd657c4ffc2d125c2d0e51233105606ad306d00d3f",
+    "download": "https://github.com/alabypedro/media-tools/releases/download/v1.1.0/UniversalMediaTools-Setup-1.1.0.exe",
+    "page": "https://github.com/alabypedro/media-tools/releases/tag/v1.1.0"
+  },
+  {
+    "version": "1.0.0",
+    "date": "2026-09-30",
+    "notes": "Primeira versão publicada: downloads de vídeos, áudios, imagens e posts; conversor de arquivos (vídeo, áudio, imagem, PDF, PDF achatado, documentos e compactados); instalador e atualização pelo botão 'Verificar atualizações'.",
+    "installer": "UniversalMediaTools-Setup-1.0.0.exe",
+    "size_mb": 116,
+    "sha256": "9a1c1869d279529c233515b34c3bfdbabb0f0bb619c8ecc4a8fec3c97761765a",
+    "download": "https://github.com/alabypedro/media-tools/releases/download/v1.0.0/UniversalMediaTools-Setup-1.0.0.exe",
+    "page": "https://github.com/alabypedro/media-tools/releases/tag/v1.0.0"
+  }
+]

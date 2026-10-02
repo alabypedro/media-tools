@@ -359,12 +359,26 @@ Isso é separado da atualização das engines (yt-dlp/gallery-dl), que continua 
 **Publicar uma versão nova:**
 
 ```powershell
-# 1. aumente __version__ em umd/__init__.py (ex.: 1.0.0 -> 1.1.0)
-# 2. feche o app e gere o executável e o instalador
-python build.py --zip --installer
-# 3. publique (usa o GitHub CLI: winget install GitHub.cli; gh auth login)
-python publish_release.py "O que mudou nesta versão"
+python release.py "O que mudou nesta versão"           # correção: 1.2.0 -> 1.2.1
+python release.py --minor "O que mudou nesta versão"   # recurso novo: 1.2.0 -> 1.3.0
 ```
+
+Um comando faz tudo e para no primeiro erro: aumenta `__version__`, roda os testes (`--skip-tests` pula),
+gera o executável e o instalador, faz commit e push de tudo (`--no-git` pula), publica no GitHub Releases,
+atualiza a lista de builds (`builds.json`) e apaga de `dist/` os arquivos das versões antigas. Se o teste ou o
+build falhar, a versão volta ao que era. Usa o GitHub CLI (`winget install GitHub.cli; gh auth login`) e o
+Inno Setup 6. Também dá para usar `--major` ou `--version 1.4.2`.
+
+**Builds antigas** ficam só no GitHub; no computador fica a lista:
+
+```powershell
+python release.py --list             # versões publicadas, com data, notas e link do instalador
+python release.py --install 1.1.0    # baixa do GitHub, confere o SHA-256 e abre o instalador
+python release.py --sync             # refaz builds.json a partir do GitHub
+python release.py --clean            # só apaga de dist/ os arquivos de versões antigas
+```
+
+Os passos avulsos continuam existindo: `python build.py --zip --installer` e `python publish_release.py "notas"`.
 
 A variável `UMD_UPDATE_REPO` troca o repositório consultado (útil para testes).
 
@@ -493,6 +507,8 @@ universal-media-tools/
 ├── assets/                    ícones
 ├── build.py                   build Windows (.exe, --zip, --installer)
 ├── publish_release.py         publica uma versão nova no GitHub Releases
+├── release.py                 versão + testes + build + commit + publicação + limpeza, num comando só
+├── builds.json                lista das versões publicadas (gerada pelo release.py)
 ├── UniversalMediaTools.bat    abre o app pelo Python instalado
 └── requirements*.txt, pyproject.toml
 ```

@@ -17,6 +17,13 @@ REPO = "fulano/media-tools"
 API = f"https://api.github.com/repos/{REPO}/releases/latest"
 
 
+@pytest.fixture(autouse=True)
+def installed_version(monkeypatch: pytest.MonkeyPatch) -> None:
+    """O programa "instalado" nestes testes e sempre o 1.0.0, seja qual for a versao real do projeto
+    (senao o release simulado 1.2.0 deixa de ser "mais novo" quando o projeto passa dele)."""
+    monkeypatch.setattr(app_update, "__version__", "1.0.0")
+
+
 class FakeResponse(io.BytesIO):
     def __init__(self, data: bytes, url: str):
         super().__init__(data)
