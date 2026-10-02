@@ -11,7 +11,13 @@ Você cola o link, o app identifica a plataforma e o tipo de conteúdo, mostra
 preview, título, autor, duração e **só as qualidades/formatos que realmente
 existem**. Você escolhe o que baixar e acompanha o progresso em tempo real.
 
+**Baixar:** instalador para Windows em [Releases](https://github.com/alabypedro/media-tools/releases/latest)
+· código em [github.com/alabypedro/media-tools](https://github.com/alabypedro/media-tools).
+
 ![Tela inicial com um vídeo analisado](docs/screenshots/inicio.png)
+
+> As capturas de tela são de quando o app ainda se chamava *Universal Media Downloader* e não
+> tinha a aba Converter; o resto da interface continua igual.
 
 ---
 
@@ -165,12 +171,13 @@ Estrutura da janela:
 
 ## Instalação (usuário final)
 
-**Com o instalador (recomendado):** rode `UniversalMediaTools-Setup-<versão>.exe`
-(gerado pelo [build](#build-para-windows)) e siga o assistente, em português.
+**Com o instalador (recomendado):** baixe `UniversalMediaTools-Setup-<versão>.exe` em
+[Releases](https://github.com/alabypedro/media-tools/releases/latest) (ou gere com o
+[build](#build-para-windows)) e siga o assistente, em português.
 - Não pede Administrador: instala só para você em `%LOCALAPPDATA%\Programs\Universal Media Tools`. No assistente dá para escolher instalar para todos os usuários.
 - Cria atalho no Menu Iniciar e, se você marcar, na Área de Trabalho.
 - Opção (desmarcada) de colocar o comando `umd` no PATH, para usar `umd` e `umd convert` em qualquer terminal.
-- Aparece em "Aplicativos instalados" do Windows, com desinstalador. Para atualizar, rode o instalador da versão nova por cima.
+- Aparece em "Aplicativos instalados" do Windows, com desinstalador. Para atualizar, use **Verificar atualizações** no app (ver [Atualizações do programa](#atualizações-do-programa)) ou rode o instalador da versão nova por cima.
 - A desinstalação mantém o histórico, a Biblioteca e as configurações (em `%LOCALAPPDATA%`), além dos arquivos baixados.
 - Instalação silenciosa: `UniversalMediaTools-Setup-<versão>.exe /VERYSILENT /TASKS=addtopath`.
 
@@ -193,6 +200,7 @@ YouTube podem não aparecer (o app avisa).
 Requisitos: **Python 3.10+** (testado com 3.14) no Windows.
 
 ```powershell
+git clone https://github.com/alabypedro/media-tools.git universal-media-tools
 cd universal-media-tools
 python -m venv .venv
 .venv\Scripts\activate
@@ -342,6 +350,7 @@ Tudo pela tela **Configurações**:
 | Contas e cookies | usar a sessão de um navegador (Firefox, Chrome, Edge, Brave...) ou um arquivo `cookies.txt` |
 | Interface | tema (sistema, claro, escuro) e idioma (português, inglês) |
 | Engines | versões, FFmpeg, runtime JavaScript, verificar/instalar atualizações, restaurar versões embutidas, plataformas suportadas, pasta de logs |
+| Atualizações do programa | versão instalada, **Verificar agora**, avisar quando houver versão nova (verifica ao abrir; ligado por padrão) |
 | Avançado | permitir URLs da rede local |
 
 As opções do conversor ficam na própria tela **Converter**, no link
@@ -426,7 +435,8 @@ universal-media-tools/
 │   ├── main.py                interface gráfica
 │   ├── cli.py                 linha de comando (usa os mesmos serviços)
 │   ├── core/                  config (Pydantic), logs com redação, SQLite + migrações, erros amigáveis,
-│   │                          validação de URL, nomes/templates, subprocessos seguros, i18n
+│   │                          validação de URL, nomes/templates, subprocessos seguros, i18n,
+│   │                          atualização do programa pelo GitHub Releases (app_update.py)
 │   ├── providers/             MediaProvider + 16 plataformas + genérico; adaptadores yt-dlp, gallery-dl e direto
 │   ├── engine/                worker (subprocesso), protocolo JSON lines, runner, backends, overrides
 │   ├── downloader/            DownloadManager, fila, job, progresso, executor (staging → destino final)
@@ -437,12 +447,15 @@ universal-media-tools/
 │   │   ├── core/              registro de formatos e regras, fila, config, histórico (SQLite), caminhos seguros
 │   │   ├── converters/        mídia (FFmpeg), imagem, PDF, achatar PDF, texto/Markdown, Office (LibreOffice), compactados
 │   │   └── cli.py             umd convert
-│   └── ui/                    janela, Início, Downloads, Converter, Histórico, Biblioteca, Configurações, tema
+│   └── ui/                    janela, Início, Downloads, Converter, Histórico, Biblioteca, Configurações, tema,
+│                              fluxo de atualização do programa (app_update.py)
 ├── tests/                     testes (pytest + pytest-qt); tests/convert/ para o conversor
-├── packaging/                 umd.spec + entradas dos executáveis
+├── packaging/                 umd.spec, entradas dos executáveis, installer.iss (Inno Setup)
 ├── tools/                     gerador de ícone, extrator de textos para tradução
 ├── assets/                    ícones
-├── build.py                   build Windows
+├── build.py                   build Windows (.exe, --zip, --installer)
+├── publish_release.py         publica uma versão nova no GitHub Releases
+├── UniversalMediaTools.bat    abre o app pelo Python instalado
 └── requirements*.txt, pyproject.toml
 ```
 
@@ -467,6 +480,8 @@ universal-media-tools/
 - Plugins de terceiros do yt-dlp não são carregados. A configuração do usuário do gallery-dl é ignorada.
 - Limites de tamanho (arquivo, listas TXT/CSV, miniaturas) e tempos limite (análise, conexão).
 - Logs e detalhes técnicos passam por um filtro que remove cookies, tokens e senhas.
+- Atualização do programa: só consulta o GitHub por HTTPS (inclusive depois de redirecionamentos), exige o SHA-256
+  publicado no Release, descarta o arquivo se não bater e nunca instala sem confirmação.
 
 **Portabilidade**: o código de sistema operacional está isolado em
 `core/paths.py` (pasta de dados por SO) e `core/process.py` (encerramento de
@@ -497,7 +512,10 @@ cobre:
 - atualização segura das engines (hash adulterado, zip malicioso, ativação e reversão);
 - conversor: regras de formato, fila, conflitos de nome, zip slip, cada conversor, `umd convert`, cancelamento (inclusive durante a pausa);
 - achatar PDF: formulário e caixas de seleção viram conteúdo fixo sem perder o texto preenchido, links preservados, PDF com senha e PDF inválido;
-- interface (pytest-qt), incluindo a tela Converter com conversão real em segundo plano.
+- interface (pytest-qt), incluindo a tela Converter com conversão real em segundo plano;
+- atualização do programa (GitHub simulado, nenhum teste acessa a internet): versões, SHA-256 obrigatório,
+  arquivo adulterado descartado, redirecionamento para fora do GitHub recusado, aviso ao abrir sem diálogos,
+  cópia fora do instalador só oferece a página de download.
 
 ---
 
@@ -521,6 +539,8 @@ cobre:
 | [py7zr](https://github.com/miurahr/py7zr) | arquivos 7Z | LGPL-2.1+ |
 | [LibreOffice](https://www.libreoffice.org) (não incluído; usado se instalado) | documentos do Office | MPL-2.0 |
 | [PyInstaller](https://pyinstaller.org) | empacotamento (só no build) | GPL-2.0+ com exceção de bootloader |
+| [Inno Setup](https://jrsoftware.org/isinfo.php) | instalador (só no build) | licença própria (gratuita) |
+| [GitHub CLI](https://cli.github.com) | publicar versões (só para quem publica) | MIT |
 
 **Ao redistribuir o executável** (não é aconselhamento jurídico):
 - O **FFmpeg** vai como programa separado, com o aviso `ffmpeg/FFMPEG-LICENSE.txt` indicando onde obter o código-fonte (GPL-3.0).
