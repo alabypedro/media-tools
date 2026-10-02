@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.2.1",
+    "date": "2026-10-02",
+    "notes": "Universal Media Tools 1.2.1",
+    "installer": "UniversalMediaTools-Setup-1.2.1.exe",
+    "size_mb": 116,
+    "sha256": "d5d43204b2e9270962f240b5f578afe07932bdcfb802b3d21d459cf2852dbbc5",
+    "download": "https://github.com/alabypedro/media-tools/releases/download/v1.2.1/UniversalMediaTools-Setup-1.2.1.exe",
+    "page": "https://github.com/alabypedro/media-tools/releases/tag/v1.2.1"
+  },
+  {
     "version": "1.2.0",
     "date": "2026-10-02",
     "notes": "Novo: tela Editor (ferramentas de GIF, animações e vídeo) e comando umd edit",
