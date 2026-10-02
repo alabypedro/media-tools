@@ -608,26 +608,26 @@ cobre:
 
 ## Dependências e licenças
 
-| Componente | Uso | Licença |
-|---|---|---|
-| [yt-dlp](https://github.com/yt-dlp/yt-dlp) | engine de vídeo/áudio | Unlicense |
-| [yt-dlp-ejs](https://github.com/yt-dlp/ejs) | desafios JavaScript do YouTube | Unlicense, MIT e ISC |
-| [gallery-dl](https://github.com/mikf/gallery-dl) | engine de imagens, galerias e posts | GPL-2.0-only |
-| [PySide6 / Qt](https://www.qt.io/qt-for-python) | interface gráfica | LGPL-3.0 (ou GPL) |
-| [FFmpeg](https://ffmpeg.org) (build [gyan.dev](https://www.gyan.dev/ffmpeg/builds/) via imageio-ffmpeg) | merge e conversão | GPL-3.0 (esta build) |
-| [imageio-ffmpeg](https://github.com/imageio/imageio-ffmpeg) | fornece o binário do FFmpeg | BSD-2-Clause |
-| [Pydantic](https://docs.pydantic.dev) | configurações e modelos | MIT |
-| [Requests](https://requests.readthedocs.io) | download direto e atualizações | Apache-2.0 |
-| [Pillow](https://python-pillow.org) | conversão de imagens | MIT-CMU |
-| [PyMuPDF](https://pymupdf.readthedocs.io) | PDF → imagem e prévia de PDF | **AGPL-3.0** (ou licença comercial) |
-| [pypdf](https://github.com/py-pdf/pypdf) | achatar PDF (formulários e anotações) | BSD-3-Clause |
-| [ReportLab](https://www.reportlab.com/opensource/) | texto/Markdown/imagens → PDF | BSD |
-| [Python-Markdown](https://python-markdown.github.io) | Markdown → PDF | BSD-3-Clause |
-| [py7zr](https://github.com/miurahr/py7zr) | arquivos 7Z | LGPL-2.1+ |
-| [LibreOffice](https://www.libreoffice.org) (não incluído; usado se instalado) | documentos do Office | MPL-2.0 |
-| [PyInstaller](https://pyinstaller.org) | empacotamento (só no build) | GPL-2.0+ com exceção de bootloader |
-| [Inno Setup](https://jrsoftware.org/isinfo.php) | instalador (só no build) | licença própria (gratuita) |
-| [GitHub CLI](https://cli.github.com) | publicar versões (só para quem publica) | MIT |
+| Componente                                                                                              | Uso                                     | Licença                             |
+| ------------------------------------------------------------------------------------------------------- | --------------------------------------- | ----------------------------------- |
+| [yt-dlp](https://github.com/yt-dlp/yt-dlp)                                                              | engine de vídeo/áudio                   | Unlicense                           |
+| [yt-dlp-ejs](https://github.com/yt-dlp/ejs)                                                             | desafios JavaScript do YouTube          | Unlicense, MIT e ISC                |
+| [gallery-dl](https://github.com/mikf/gallery-dl)                                                        | engine de imagens, galerias e posts     | GPL-2.0-only                        |
+| [PySide6 / Qt](https://www.qt.io/qt-for-python)                                                         | interface gráfica                       | LGPL-3.0 (ou GPL)                   |
+| [FFmpeg](https://ffmpeg.org) (build [gyan.dev](https://www.gyan.dev/ffmpeg/builds/) via imageio-ffmpeg) | merge e conversão                       | GPL-3.0 (esta build)                |
+| [imageio-ffmpeg](https://github.com/imageio/imageio-ffmpeg)                                             | fornece o binário do FFmpeg             | BSD-2-Clause                        |
+| [Pydantic](https://docs.pydantic.dev)                                                                   | configurações e modelos                 | MIT                                 |
+| [Requests](https://requests.readthedocs.io)                                                             | download direto e atualizações          | Apache-2.0                          |
+| [Pillow](https://python-pillow.org)                                                                     | conversão de imagens                    | MIT-CMU                             |
+| [PyMuPDF](https://pymupdf.readthedocs.io)                                                               | PDF → imagem e prévia de PDF            | **AGPL-3.0** (ou licença comercial) |
+| [pypdf](https://github.com/py-pdf/pypdf)                                                                | achatar PDF (formulários e anotações)   | BSD-3-Clause                        |
+| [ReportLab](https://www.reportlab.com/opensource/)                                                      | texto/Markdown/imagens → PDF            | BSD                                 |
+| [Python-Markdown](https://python-markdown.github.io)                                                    | Markdown → PDF                          | BSD-3-Clause                        |
+| [py7zr](https://github.com/miurahr/py7zr)                                                               | arquivos 7Z                             | LGPL-2.1+                           |
+| [LibreOffice](https://www.libreoffice.org) (não incluído; usado se instalado)                           | documentos do Office                    | MPL-2.0                             |
+| [PyInstaller](https://pyinstaller.org)                                                                  | empacotamento (só no build)             | GPL-2.0+ com exceção de bootloader  |
+| [Inno Setup](https://jrsoftware.org/isinfo.php)                                                         | instalador (só no build)                | licença própria (gratuita)          |
+| [GitHub CLI](https://cli.github.com)                                                                    | publicar versões (só para quem publica) | MIT                                 |
 
 **Ao redistribuir o executável** (não é aconselhamento jurídico):
 - O **FFmpeg** vai como programa separado, com o aviso `ffmpeg/FFMPEG-LICENSE.txt` indicando onde obter o código-fonte (GPL-3.0).
