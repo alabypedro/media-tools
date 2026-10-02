@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.2.3",
+    "date": "2026-10-02",
+    "notes": "1.2.2",
+    "installer": "UniversalMediaTools-Setup-1.2.3.exe",
+    "size_mb": 116,
+    "sha256": "bd245bc65a893941f9901c64a18c2be74a9c780c39cf2a3d710dda6b87e783c5",
+    "download": "https://github.com/alabypedro/media-tools/releases/download/v1.2.3/UniversalMediaTools-Setup-1.2.3.exe",
+    "page": "https://github.com/alabypedro/media-tools/releases/tag/v1.2.3"
+  },
+  {
     "version": "1.2.1",
     "date": "2026-10-02",
     "notes": "Universal Media Tools 1.2.1",
