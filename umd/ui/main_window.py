@@ -32,10 +32,11 @@ from .editor import EditorPage
 from .history import HistoryPage
 from .home import HomePage
 from .library import LibraryPage
+from .rename import RenamePage
 from .settings import PlatformsDialog, SettingsPage
 from .widgets import Debouncer, confirm, reveal_in_folder, run_task
 
-PAGES = ("home", "downloads", "converter", "editor", "history", "library", "settings")
+PAGES = ("home", "downloads", "converter", "editor", "rename", "history", "library", "settings")
 
 
 class MainWindow(QMainWindow):
@@ -65,11 +66,12 @@ class MainWindow(QMainWindow):
         self.downloads = DownloadsPage(ctx.manager, self.bridge, self._open_downloads_folder)
         self.converter = ConverterPage(ctx)
         self.editor = EditorPage(ctx)
+        self.renamer = RenamePage(ctx)
         self.history = HistoryPage(ctx)
         self.library = LibraryPage(ctx)
         self.settings_page = SettingsPage(ctx)
-        for page in (self.home, self.downloads, self.converter, self.editor, self.history, self.library,
-                     self.settings_page):
+        for page in (self.home, self.downloads, self.converter, self.editor, self.renamer, self.history,
+                     self.library, self.settings_page):
             self.stack.addWidget(page)
 
         self.status_label = QLabel()
@@ -79,6 +81,7 @@ class MainWindow(QMainWindow):
         self.home.download_submitted.connect(self._on_submitted)
         self.history.redownloaded.connect(lambda: self.navigate("downloads"))
         self.library.convert_requested.connect(self.convert_files)
+        self.renamer.convert_requested.connect(self.convert_files)
         self.settings_page.settings_saved.connect(self.home.reload_defaults)
         self.settings_page.check_app_update.connect(lambda: self.updater.check(manual=True))
         self.downloads.counts_changed.connect(self._on_counts)
@@ -115,6 +118,7 @@ class MainWindow(QMainWindow):
             "downloads": "⬇   " + tr("Downloads"),
             "converter": "🔄   " + tr("Converter"),
             "editor": "🎞   " + tr("Editor"),
+            "rename": "✏   " + tr("Renomear"),
             "history": "📜   " + tr("Histórico"),
             "library": "📁   " + tr("Biblioteca"),
             "settings": "⚙   " + tr("Configurações"),

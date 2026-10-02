@@ -111,6 +111,16 @@ plataforma e os direitos autorais.
 - Funciona com GIF, WebP, APNG, AVIF, PNG, JPG e vídeos (MP4, WebM, MKV, MOV...). No vídeo → vídeo o áudio acompanha o corte, a velocidade e a inversão.
 - O original nunca é alterado: o resultado sai como `nome (redimensionado).gif` e o botão **Editar o resultado** encadeia a próxima ferramenta. Prévia animada do original e do resultado.
 
+**Renomeador em lote** (tela **Renomear** e `umd rename`)
+- **Modelo do nome** com campos: `{name}` (nome atual), `{n:3}` (contador: 001, 002...), `{date:%Y-%m-%d}` (data da foto), `{parent}` (pasta) e `{ext}`. Modelos prontos para numerar em sequência e para nomear pela data.
+- **Localizar e substituir** por texto ou **regex** (com `\1`, `\2` para os grupos), ignorando ou não maiúsculas. É aplicado antes do modelo.
+- **Data EXIF**: usa a data em que a foto foi tirada. Sem EXIF (ou em arquivo que não é foto), usa a data de modificação, ou pula o arquivo, à sua escolha.
+- Caixa do nome e da extensão (minúsculas, maiúsculas, iniciais maiúsculas) e contador com início e ordem (lista, nome ou data).
+- **Prévia antes de aplicar**: a tabela mostra o nome atual e o novo de cada arquivo conforme você muda as opções; nada é alterado no disco até clicar em **Renomear**.
+- A extensão é mantida, o arquivo não muda de pasta e **nada é sobrescrito**: nome repetido ganha ` (1)`. Trocas dentro do lote (`1→2`, `2→3`) funcionam.
+- Se um arquivo falhar (aberto em outro programa), os que já tinham sido renomeados voltam atrás. **Desfazer última renomeação** devolve os nomes antigos.
+- **Enviar para o Converter** leva os arquivos já renomeados para a fila do conversor.
+
 **Outros**
 - Download em lote: cole várias URLs ou importe TXT/CSV.
 - Arrastar e soltar links na janela.
@@ -172,6 +182,7 @@ Estrutura da janela:
 │ ⬇ Downloads  │  ┌ Conteúdo identificado ──────────────────┐  │
 │ 🔄 Converter  │  │ [thumb]  Título • Autor • Duração        │  │
 │ 🎞 Editor     │  │ Tipo / Qualidade / Formato / Pasta       │  │
+│ ✏ Renomear   │  │                                          │  │
 │ 📜 Histórico  │  │                              [ BAIXAR ]  │  │
 │ 📁 Biblioteca │  └─────────────────────────────────────────┘  │
 │ ⚙ Config.    │  Aba "Vários links (lote)": lista, importar TXT/CSV
@@ -305,6 +316,21 @@ umd edit --sprite anim.gif -o folha.png --columns 4
 umd edit --unsprite folha.png -o anim.gif --columns 4 --rows 2
 umd edit --merge a.mp4 b.mp4 -o junto.mp4
 umd edit --help                                 todas as opções (efeitos, cores, qualidade...)
+```
+
+**Renomeador em lote** (sem `--apply`, só mostra a prévia):
+
+```text
+umd rename "C:\Fotos\Viagem" --exif                       prévia: 2024-03-15 14.30.22.jpg ...
+umd rename "C:\Fotos\Viagem" --exif --apply               renomeia de verdade
+umd rename pasta -p "Férias {n:3}"                        Férias 001.jpg, Férias 002.jpg...
+umd rename pasta -p "{date:%Y-%m} {name}" --exif-only     pula quem não tem data EXIF
+umd rename pasta --find "IMG_" --replace "foto-"          troca um trecho do nome
+umd rename pasta --find "(\d+)-(\d+)" --replace "\2-\1" --regex
+umd rename *.JPG --case lower --ext-case lower            tudo em minúsculas
+umd rename pasta -r --sort date -p "{parent} {n}"         com subpastas, numerando pela data
+umd rename --undo                                         desfaz a última renomeação
+umd rename --help                                         todos os campos e opções
 ```
 
 ---
@@ -499,9 +525,13 @@ universal-media-tools/
 │   │   ├── video.py           o que passa pelo FFmpeg: vídeo → vídeo, vídeo ↔ quadros, juntar vídeos
 │   │   ├── tools.py           as ferramentas (o que a tela e a CLI chamam)
 │   │   └── cli.py             umd edit
-│   └── ui/                    janela, Início, Downloads, Converter, Editor, Histórico, Biblioteca, Configurações,
-│                              tema, fluxo de atualização do programa (app_update.py)
-├── tests/                     testes (pytest + pytest-qt); tests/convert/ para o conversor, tests/editor/ para o editor
+│   ├── rename/                renomeador em lote:
+│   │   ├── engine.py          plano (nome atual → nome novo), aplicação tudo-ou-nada e desfazer
+│   │   └── cli.py             umd rename
+│   └── ui/                    janela, Início, Downloads, Converter, Editor, Renomear, Histórico, Biblioteca,
+│                              Configurações, tema, fluxo de atualização do programa (app_update.py)
+├── tests/                     testes (pytest + pytest-qt); tests/convert/ para o conversor, tests/editor/ para o editor,
+│                              tests/rename/ para o renomeador
 ├── packaging/                 umd.spec, entradas dos executáveis, installer.iss (Inno Setup)
 ├── tools/                     gerador de ícone, extrator de textos para tradução
 ├── assets/                    ícones
@@ -568,7 +598,8 @@ cobre:
 - conversor: regras de formato, fila, conflitos de nome, zip slip, cada conversor, `umd convert`, cancelamento (inclusive durante a pausa);
 - achatar PDF: formulário e caixas de seleção viram conteúdo fixo sem perder o texto preenchido, links preservados, PDF com senha e PDF inválido;
 - editor: cada operação (tamanho, corte, giro, tempo, efeitos, texto, marca-d'água, censura, cores), transparência, formatos animados, vídeo ↔ GIF e vídeo → vídeo com áudio (vídeo de teste gerado pelo FFmpeg), dividir/sprite/juntar, `umd edit`, cancelamento e limite de memória;
-- interface (pytest-qt), incluindo as telas Converter e Editor com processamento real em segundo plano;
+- renomeador: modelo, contador, localizar/substituir com regex, data EXIF e data de modificação, conflitos de nome, trocas dentro do lote, tudo-ou-nada quando um arquivo falha, desfazer e `umd rename`;
+- interface (pytest-qt), incluindo as telas Converter e Editor com processamento real em segundo plano e a tela Renomear;
 - atualização do programa (GitHub simulado, nenhum teste acessa a internet): versões, SHA-256 obrigatório,
   arquivo adulterado descartado, redirecionamento para fora do GitHub recusado, aviso ao abrir sem diálogos,
   cópia fora do instalador só oferece a página de download.
@@ -618,6 +649,7 @@ uma compatível com esse cenário antes de distribuir.
 - Páginas de arquivo do Wikimedia Commons listam também as **versões antigas** do arquivo. Use "Selecionar arquivos" para escolher.
 - A troca de idioma vale a partir da próxima abertura do app. As mensagens de erro do conversor e do editor ainda são só em português.
 - **Editor**: as áreas de cortar e censurar são informadas em números (X, Y, largura, altura), sem seleção com o mouse sobre a prévia. O GIF é reduzido por cores, quadros e tamanho; não há a compressão "lossy" do gifsicle. Animação → vídeo e vídeo → animação carregam os quadros na memória, então há um limite (o app avisa e pede um trecho ou tamanho menor). JPEG XL e MNG não são suportados. WebP animado não pode ser usado em "Juntar vídeos" (o FFmpeg não lê).
+- **Renomear**: a data EXIF só é lida de fotos (JPG, TIFF, PNG, WebP, AVIF; HEIC com o `pillow-heif` instalado). Vídeos e outros arquivos usam a data de modificação. Só a última renomeação pode ser desfeita, e só renomeia arquivos (não pastas).
 - **Conversor**: "Pausar" espera o arquivo atual terminar (não dá para pausar um FFmpeg/LibreOffice no meio). Documentos do Office exigem o LibreOffice instalado. Compactados `.tar.gz`/`.tgz` não são aceitos como origem na fila (só `.zip`, `.7z` e `.tar`).
 - O executável não é assinado digitalmente (SmartScreen e antivírus podem alertar).
 - Linux e macOS: a arquitetura está preparada (pastas de dados e encerramento de processos por SO), mas só o Windows foi testado e empacotado. O instalador e o `.exe` são só para Windows 10/11 de 64 bits.
