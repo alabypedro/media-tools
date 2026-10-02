@@ -90,7 +90,7 @@ plataforma e os direitos autorais.
 - **Biblioteca** em grade ou lista, com miniaturas, filtros por tipo, plataforma e data, e busca por título, autor ou nome do arquivo.
 
 **Conversor de arquivos** (tela **Converter** e `umd convert`)
-- Vídeo ↔ vídeo e vídeo → áudio (FFmpeg), áudio ↔ áudio, imagem ↔ imagem (inclui GIF animado e, com `pillow-heif`, HEIC).
+- Vídeo ↔ vídeo e vídeo → áudio (FFmpeg), áudio ↔ áudio, imagem ↔ imagem (inclui GIF animado, AVIF e, com `pillow-heif`, HEIC).
 - PDF → imagens (páginas escolhidas, DPI e qualidade), imagem/texto/Markdown → PDF, e **várias imagens → um PDF** na ordem que você escolher.
 - **Achatar PDF** (formato de saída "PDF achatado"): campos de formulário preenchidos, caixas de seleção e anotações (comentários, carimbos, destaques) viram conteúdo fixo da página e o PDF deixa de ser editável, como o flatten do Sejda. Gera `nome (achatado).pdf`; links continuam clicáveis e PDFs com senha são recusados com aviso. Antes era o script `scripts/flatten_pdf.py`.
 - Documentos, planilhas e apresentações (DOCX, XLSX, PPTX, ODT...) via **LibreOffice**, se estiver instalado.
@@ -99,6 +99,17 @@ plataforma e os direitos autorais.
 - Os originais nunca são alterados. Se o arquivo de saída já existir: criar `nome (1).ext` (padrão), sobrescrever ou pular.
 - Histórico de conversões próprio. Na **Biblioteca**, clique com o botão direito num arquivo baixado → **Converter…**.
 - Arquivos do computador arrastados para qualquer tela vão para o conversor.
+
+**Editor de GIF, animações e vídeo** (tela **Editor** e `umd edit`), com as ferramentas do [ezgif.com](https://ezgif.com), mas no seu computador
+- **Criar GIF** com imagens na ordem que você escolher (um GIF na lista entra com todos os quadros, então também serve para **juntar GIFs**).
+- **Vídeo → GIF**, WebP, APNG ou AVIF animado: trecho, quadros por segundo e largura. E o caminho de volta: **GIF → MP4/WebM**.
+- **Redimensionar**, **cortar** (área), **girar/espelhar**, **recortar duração**, **velocidade**, **inverter** e **vai e volta** (bumerangue).
+- **Efeitos**: preto e branco, sépia, negativo, brilho, contraste, saturação, desfoque, nitidez e cor no lugar da transparência.
+- **Texto** (legenda com contorno, estilo meme), **marca-d'água** (imagem por cima, com opacidade) e **censurar área** (desfocar, pixelar ou tarja).
+- **Otimizar**: menos cores, menos quadros, quadros repetidos juntados, qualidade do WebP/AVIF/JPG/vídeo e vídeo sem áudio.
+- **Dividir em quadros** (pasta ou ZIP), **sprite sheet** (montar e cortar) e **juntar vídeos**.
+- Funciona com GIF, WebP, APNG, AVIF, PNG, JPG e vídeos (MP4, WebM, MKV, MOV...). No vídeo → vídeo o áudio acompanha o corte, a velocidade e a inversão.
+- O original nunca é alterado: o resultado sai como `nome (redimensionado).gif` e o botão **Editar o resultado** encadeia a próxima ferramenta. Prévia animada do original e do resultado.
 
 **Outros**
 - Download em lote: cole várias URLs ou importe TXT/CSV.
@@ -160,10 +171,11 @@ Estrutura da janela:
 │ 🏠 Início     │  Cole uma URL  [______________] [Colar][ANALISAR]
 │ ⬇ Downloads  │  ┌ Conteúdo identificado ──────────────────┐  │
 │ 🔄 Converter  │  │ [thumb]  Título • Autor • Duração        │  │
-│ 📜 Histórico  │  │ Tipo / Qualidade / Formato / Pasta       │  │
-│ 📁 Biblioteca │  │                              [ BAIXAR ]  │  │
-│ ⚙ Config.    │  └─────────────────────────────────────────┘  │
-│ Plataformas  │  Aba "Vários links (lote)": lista, importar TXT/CSV
+│ 🎞 Editor     │  │ Tipo / Qualidade / Formato / Pasta       │  │
+│ 📜 Histórico  │  │                              [ BAIXAR ]  │  │
+│ 📁 Biblioteca │  └─────────────────────────────────────────┘  │
+│ ⚙ Config.    │  Aba "Vários links (lote)": lista, importar TXT/CSV
+│ Plataformas  │
 └──────────────┴──────────────────────────────────────────────┘
 ```
 
@@ -273,6 +285,27 @@ umd convert --help                              todas as opções
 
 Outras opções: `--overwrite` (sobrescreve em vez de criar `nome (1).ext`),
 `--quality N`, `--quiet`, `--verbose` e `--debug`.
+
+**Editor de GIF, animações e vídeo:**
+
+```text
+umd edit gato.gif --resize 50%                  gera "gato (editado).gif" (o original fica intacto)
+umd edit gato.gif saida.gif --crop 10,10,200,150 --rotate 90
+umd edit gato.gif --speed 2 --reverse           também: --boomerang, --delay MS, --loop N
+umd edit gato.gif --text "bom dia" --text-position top
+umd edit gato.gif --overlay logo.png --overlay-scale 20 --overlay-opacity 60
+umd edit gato.gif --censor 40,30,120,80 --censor-mode pixelate
+umd edit gato.gif --colors 64 --drop-every 2    GIF menor
+umd edit gato.gif --to mp4                      GIF -> vídeo (também webp, apng, avif, webm...)
+umd edit video.mp4 --to gif --start 2 --end 6 --fps 12 --resize 480x
+umd edit video.mp4 corte.mp4 --start 5 --end 12 --mute
+umd edit --make a.png b.png c.png -o anim.gif --delay 200
+umd edit --split anim.gif --format png [--zip]  um arquivo por quadro
+umd edit --sprite anim.gif -o folha.png --columns 4
+umd edit --unsprite folha.png -o anim.gif --columns 4 --rows 2
+umd edit --merge a.mp4 b.mp4 -o junto.mp4
+umd edit --help                                 todas as opções (efeitos, cores, qualidade...)
+```
 
 ---
 
@@ -447,9 +480,14 @@ universal-media-tools/
 │   │   ├── core/              registro de formatos e regras, fila, config, histórico (SQLite), caminhos seguros
 │   │   ├── converters/        mídia (FFmpeg), imagem, PDF, achatar PDF, texto/Markdown, Office (LibreOffice), compactados
 │   │   └── cli.py             umd convert
-│   └── ui/                    janela, Início, Downloads, Converter, Histórico, Biblioteca, Configurações, tema,
-│                              fluxo de atualização do programa (app_update.py)
-├── tests/                     testes (pytest + pytest-qt); tests/convert/ para o conversor
+│   ├── editor/                editor de GIF/animações/vídeo (ferramentas no estilo do ezgif):
+│   │   ├── clip.py            animação em memória e operações quadro a quadro (Pillow)
+│   │   ├── video.py           o que passa pelo FFmpeg: vídeo → vídeo, vídeo ↔ quadros, juntar vídeos
+│   │   ├── tools.py           as ferramentas (o que a tela e a CLI chamam)
+│   │   └── cli.py             umd edit
+│   └── ui/                    janela, Início, Downloads, Converter, Editor, Histórico, Biblioteca, Configurações,
+│                              tema, fluxo de atualização do programa (app_update.py)
+├── tests/                     testes (pytest + pytest-qt); tests/convert/ para o conversor, tests/editor/ para o editor
 ├── packaging/                 umd.spec, entradas dos executáveis, installer.iss (Inno Setup)
 ├── tools/                     gerador de ícone, extrator de textos para tradução
 ├── assets/                    ícones
@@ -470,6 +508,7 @@ universal-media-tools/
 - **Área de staging por job**: tudo é baixado em `<destino>/.umd-staging/<id>/`, no mesmo disco. Pausar preserva os parciais, cancelar apaga, e só no fim os arquivos são movidos para o nome definitivo.
 - **Suporte real, não presumido**: os providers definem só domínios, ordem de engines e tipo de conteúdo. Se a engine responde "não reconheço", o provider tenta a próxima; se é um erro real (privado, login, DRM), mostra o erro. No genérico, um extrator **dedicado** do gallery-dl ganha do extrator **genérico** do yt-dlp.
 - **O conversor não passa pelo worker das engines**: converte arquivos locais numa thread da interface (a tela nunca trava) e cada FFmpeg/LibreOffice que ele abre é encerrado ao cancelar. Ele só compartilha com o resto do app a pasta de dados e a localização do FFmpeg.
+- **O editor tem um único conjunto de opções e dois caminhos**: animações e imagens são editadas quadro a quadro pelo Pillow; vídeo → vídeo vai inteiro pelo FFmpeg (para manter o áudio e não carregar o vídeo na memória). As operações seguem sempre a mesma ordem nos dois (trecho → corte → tamanho → giro → efeitos → censura → marca/texto → velocidade). Vídeo → GIF usa o FFmpeg só para tirar os quadros já cortados e redimensionados.
 - **Atualização segura das engines**: a versão nova vem do PyPI por HTTPS, com SHA-256 conferido e extração protegida contra path traversal. Ela é validada rodando o worker antes de ser ativada, e a troca é atômica (`engines/active.json`). "Restaurar versões embutidas" desfaz.
 
 **Segurança**
@@ -512,7 +551,8 @@ cobre:
 - atualização segura das engines (hash adulterado, zip malicioso, ativação e reversão);
 - conversor: regras de formato, fila, conflitos de nome, zip slip, cada conversor, `umd convert`, cancelamento (inclusive durante a pausa);
 - achatar PDF: formulário e caixas de seleção viram conteúdo fixo sem perder o texto preenchido, links preservados, PDF com senha e PDF inválido;
-- interface (pytest-qt), incluindo a tela Converter com conversão real em segundo plano;
+- editor: cada operação (tamanho, corte, giro, tempo, efeitos, texto, marca-d'água, censura, cores), transparência, formatos animados, vídeo ↔ GIF e vídeo → vídeo com áudio (vídeo de teste gerado pelo FFmpeg), dividir/sprite/juntar, `umd edit`, cancelamento e limite de memória;
+- interface (pytest-qt), incluindo as telas Converter e Editor com processamento real em segundo plano;
 - atualização do programa (GitHub simulado, nenhum teste acessa a internet): versões, SHA-256 obrigatório,
   arquivo adulterado descartado, redirecionamento para fora do GitHub recusado, aviso ao abrir sem diálogos,
   cópia fora do instalador só oferece a página de download.
@@ -560,7 +600,8 @@ uma compatível com esse cenário antes de distribuir.
 - **Pausar no gallery-dl** retoma por arquivo: arquivos já concluídos não são baixados de novo, e o arquivo em andamento continua do `.part` quando o servidor permite.
 - **Playlists**: a análise usa extração rápida ("flat"), então as qualidades por item só são conhecidas no download. Os presets funcionam como **prioridade** (ex.: "Até 1080p" escolhe a maior resolução até 1080p de cada vídeo).
 - Páginas de arquivo do Wikimedia Commons listam também as **versões antigas** do arquivo. Use "Selecionar arquivos" para escolher.
-- A troca de idioma vale a partir da próxima abertura do app. As mensagens de erro do conversor ainda são só em português.
+- A troca de idioma vale a partir da próxima abertura do app. As mensagens de erro do conversor e do editor ainda são só em português.
+- **Editor**: as áreas de cortar e censurar são informadas em números (X, Y, largura, altura), sem seleção com o mouse sobre a prévia. O GIF é reduzido por cores, quadros e tamanho; não há a compressão "lossy" do gifsicle. Animação → vídeo e vídeo → animação carregam os quadros na memória, então há um limite (o app avisa e pede um trecho ou tamanho menor). JPEG XL e MNG não são suportados. WebP animado não pode ser usado em "Juntar vídeos" (o FFmpeg não lê).
 - **Conversor**: "Pausar" espera o arquivo atual terminar (não dá para pausar um FFmpeg/LibreOffice no meio). Documentos do Office exigem o LibreOffice instalado. Compactados `.tar.gz`/`.tgz` não são aceitos como origem na fila (só `.zip`, `.7z` e `.tar`).
 - O executável não é assinado digitalmente (SmartScreen e antivírus podem alertar).
 - Linux e macOS: a arquitetura está preparada (pastas de dados e encerramento de processos por SO), mas só o Windows foi testado e empacotado. O instalador e o `.exe` são só para Windows 10/11 de 64 bits.

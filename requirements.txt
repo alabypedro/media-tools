@@ -12,7 +12,7 @@ requests>=2.31
 
 # FFmpeg embutido (merge de audio/video e conversoes) e conversao de imagens
 imageio-ffmpeg>=0.5
-Pillow>=10.0
+Pillow>=11.3
 
 # Conversor de arquivos (tela Converter / umd convert): PDF (inclui achatar), texto/Markdown e compactados
 pymupdf>=1.24

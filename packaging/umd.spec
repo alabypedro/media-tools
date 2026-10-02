@@ -25,7 +25,7 @@ FFMPEG_DIR = ROOT / "packaging" / "ffmpeg"
 
 # gallery-dl carrega os extratores por nome (importlib): precisa listar todos.
 # Os conversores de umd.convert sao importados sob demanda (dentro de funcoes).
-hidden = collect_submodules("gallery_dl") + collect_submodules("umd.convert") + [
+hidden = collect_submodules("gallery_dl") + collect_submodules("umd.convert") + collect_submodules("umd.editor") + [
     "umd.engine.worker",
     "umd.engine.backends.ytdlp",
     "umd.engine.backends.gallerydl",

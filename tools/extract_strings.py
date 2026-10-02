@@ -33,9 +33,14 @@ def catalog_strings() -> set[str]:
     from umd.media import formats
     from umd.media.metadata import CONTENT_TYPE_LABELS, MediaInfo, ContentType
     from umd.providers import yt_dlp_provider
-    from umd.ui import converter, history, settings
+    from umd.ui import converter, editor, history, settings
 
     found: set[str] = set()
+    for mapping in (editor.POSITION_LABELS, editor.CENSOR_LABELS, editor.DROP_LABELS, editor.SPRITE_LABELS,
+                    editor.EFFECT_LABELS):
+        found.update(mapping.values())
+    for form in editor.TOOL_FORMS:
+        found.update((form.title, form.hint, form.suffix))
     for mapping in (converter.STATUS_LABELS, converter.CONFLICT_LABELS, converter.CATEGORY_LABELS,
                     converter.FONT_LABELS, converter.PAGE_SIZE_LABELS, converter.ORIENTATION_LABELS,
                     converter.FIT_LABELS):

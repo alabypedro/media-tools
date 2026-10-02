@@ -28,13 +28,14 @@ from .app_update import AppUpdater
 from .bridge import ManagerBridge
 from .converter import ConverterPage
 from .downloads import DownloadsPage
+from .editor import EditorPage
 from .history import HistoryPage
 from .home import HomePage
 from .library import LibraryPage
 from .settings import PlatformsDialog, SettingsPage
 from .widgets import Debouncer, confirm, reveal_in_folder, run_task
 
-PAGES = ("home", "downloads", "converter", "history", "library", "settings")
+PAGES = ("home", "downloads", "converter", "editor", "history", "library", "settings")
 
 
 class MainWindow(QMainWindow):
@@ -63,10 +64,12 @@ class MainWindow(QMainWindow):
         self.home = HomePage(ctx)
         self.downloads = DownloadsPage(ctx.manager, self.bridge, self._open_downloads_folder)
         self.converter = ConverterPage(ctx)
+        self.editor = EditorPage(ctx)
         self.history = HistoryPage(ctx)
         self.library = LibraryPage(ctx)
         self.settings_page = SettingsPage(ctx)
-        for page in (self.home, self.downloads, self.converter, self.history, self.library, self.settings_page):
+        for page in (self.home, self.downloads, self.converter, self.editor, self.history, self.library,
+                     self.settings_page):
             self.stack.addWidget(page)
 
         self.status_label = QLabel()
@@ -111,6 +114,7 @@ class MainWindow(QMainWindow):
             "home": "🏠   " + tr("Início"),
             "downloads": "⬇   " + tr("Downloads"),
             "converter": "🔄   " + tr("Converter"),
+            "editor": "🎞   " + tr("Editor"),
             "history": "📜   " + tr("Histórico"),
             "library": "📁   " + tr("Biblioteca"),
             "settings": "⚙   " + tr("Configurações"),
@@ -271,6 +275,7 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802 - API Qt
         if self._closing_for_update:
             self.converter.shutdown()
+            self.editor.shutdown()
             QSettings(APP_ID, "window").setValue("geometry", self.saveGeometry())
             event.accept()
             return
@@ -288,5 +293,11 @@ class MainWindow(QMainWindow):
                 event.ignore()
                 return
             self.converter.shutdown()
+        if self.editor.running and not confirm(self, tr("Edição em andamento"), tr(
+                "O Editor ainda está processando um arquivo. Fechar agora?\n"
+                "O arquivo em andamento é descartado; o original não é alterado.")):
+            event.ignore()
+            return
+        self.editor.shutdown()
         QSettings(APP_ID, "window").setValue("geometry", self.saveGeometry())
         event.accept()

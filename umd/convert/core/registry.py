@@ -34,7 +34,7 @@ AUDIO = Category("audio", "Audio", frozenset({
 }))
 IMAGE = Category("image", "Imagem", frozenset({
     "jpg", "jpeg", "png", "bmp", "gif", "webp", "tiff", "tif", "ico",
-    "heic", "heif",
+    "avif", "heic", "heif",
 }))
 DOCUMENT = Category("document", "Documento", frozenset({"doc", "docx", "odt", "rtf"}))
 SPREADSHEET = Category("spreadsheet", "Planilha", frozenset({"xls", "xlsx", "ods", "csv"}))

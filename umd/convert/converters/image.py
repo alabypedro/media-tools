@@ -12,7 +12,7 @@ from typing import Any
 from ..core.errors import ConversionError, missing_dependency
 from ..core.logging_setup import get_logger
 
-_EXIF_CAPABLE_FORMATS = {"JPEG", "TIFF", "WEBP"}
+_EXIF_CAPABLE_FORMATS = {"JPEG", "TIFF", "WEBP", "AVIF"}
 
 
 def _pil_format(target_ext: str) -> str:
@@ -83,7 +83,7 @@ def convert(
                 save_kwargs["dpi"] = (dpi, dpi)
 
             quality = options.get("quality")
-            if quality is not None and pil_format in ("JPEG", "WEBP"):
+            if quality is not None and pil_format in ("JPEG", "WEBP", "AVIF"):
                 save_kwargs["quality"] = int(quality)
             if pil_format == "PNG":
                 save_kwargs["optimize"] = True

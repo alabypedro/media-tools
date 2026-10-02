@@ -9,6 +9,7 @@ Exemplos:
     umd --file urls.txt
     umd URL --info
     umd convert video.mov mp4       (conversor de arquivos: umd convert --help)
+    umd edit gato.gif --resize 50%  (editor de GIF/animacoes/video: umd edit --help)
 """
 
 from __future__ import annotations
@@ -37,6 +38,7 @@ def build_parser() -> argparse.ArgumentParser:
                     "(e converte arquivos: umd convert).",
         epilog=(
             "Para converter arquivos (vídeo, áudio, imagem, PDF, documentos, compactados): umd convert --help. "
+            "Para editar GIFs, animações e vídeos (redimensionar, cortar, texto, vídeo → GIF...): umd edit --help. "
             "Use apenas para conteúdo que você tem autorização para baixar. O programa não contorna DRM, "
             "paywalls ou controles de acesso."
         ),
@@ -359,6 +361,10 @@ def main(argv: list[str] | None = None) -> int:
         from .convert.cli import main as convert_main
 
         return convert_main(argv[1:])
+    if argv and argv[0] == "edit":  # editor de GIF/animacoes/video: parser proprio
+        from .editor.cli import main as edit_main
+
+        return edit_main(argv[1:])
     parser = build_parser()
     args = parser.parse_args(argv)
     if args.info and args.json:
