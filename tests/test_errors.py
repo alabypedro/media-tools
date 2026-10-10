@@ -19,6 +19,10 @@ from umd.core.exceptions import ErrorCode, UMDError, classify_error_text, to_use
          ErrorCode.AUTH_REQUIRED),
         ("[instagram][error] AuthRequired: 'cookies' needed", ErrorCode.AUTH_REQUIRED),
         ("ERROR: The uploader has not made this video available in your country", ErrorCode.GEO_BLOCKED),
+        ("ERROR: [TikTok] 1: Unexpected response from webpage request; please report this issue", ErrorCode.BOT_CHECK),
+        ("ERROR: [TikTok] 1: This post may not be comfortable for some audiences. Log in for access. "
+         "Use --cookies-from-browser or --cookies for the authentication.", ErrorCode.AGE_RESTRICTED),
+        ("ERROR: [TikTok] 1: Your IP address is blocked from accessing this post", ErrorCode.GEO_BLOCKED),
         ("ERROR: [youtube] abc: This live event will begin in 3 hours", ErrorCode.LIVE_NOT_STARTED),
         ("ERROR: Unable to download webpage: HTTP Error 404: Not Found", ErrorCode.NOT_FOUND),
         ("ERROR: Unable to download webpage: HTTP Error 403: Forbidden", ErrorCode.ACCESS_DENIED),

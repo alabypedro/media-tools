@@ -2,8 +2,10 @@
 PySide6>=6.6
 
 # Engines de download ([default] inclui yt-dlp-ejs, usado pelo YouTube, e os
-# extras recomendados: requests, websockets, brotli, certifi, mutagen...)
-yt-dlp[default]>=2025.11.12
+# extras recomendados: requests, websockets, brotli, certifi, mutagen...).
+# [curl-cffi] permite ao yt-dlp se passar por um navegador real (impersonation):
+# sem ele o TikTok devolve uma pagina de desafio anti-bot e a analise falha.
+yt-dlp[default,curl-cffi]>=2025.11.12
 gallery-dl>=1.30
 
 # Modelos/configuracoes e HTTP

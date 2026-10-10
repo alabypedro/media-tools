@@ -14,7 +14,7 @@ Use o build.py (ele prepara o ffmpeg e o arquivo de versao antes):
 import sys
 from pathlib import Path
 
-from PyInstaller.utils.hooks import collect_submodules
+from PyInstaller.utils.hooks import collect_all, collect_submodules
 
 ROOT = Path(SPECPATH).parent
 sys.path.insert(0, str(ROOT))
@@ -50,6 +50,16 @@ datas = [
     (str(ROOT / "assets" / "icon.ico"), "assets"),
 ]
 binaries = []
+
+# curl_cffi (impersonation do yt-dlp, exigida pelo TikTok) e importado de forma
+# opcional pelo yt-dlp e traz extensao cffi + libcurl: coletar tudo explicitamente.
+try:
+    _cc_datas, _cc_binaries, _cc_hidden = collect_all("curl_cffi")
+    datas += _cc_datas
+    binaries += _cc_binaries
+    hidden += _cc_hidden
+except Exception:
+    print("AVISO: curl_cffi nao instalado -- o TikTok nao vai funcionar no executavel.")
 if (FFMPEG_DIR / "ffmpeg.exe").exists():
     binaries.append((str(FFMPEG_DIR / "ffmpeg.exe"), "ffmpeg"))
     if (FFMPEG_DIR / "ffprobe.exe").exists():

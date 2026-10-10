@@ -285,18 +285,21 @@ class UMDError(Exception):
 
 _RULES: list[tuple[ErrorCode, re.Pattern[str]]] = [
     (ErrorCode.DRM, r"\bDRM\b|widevine|playready|fairplay"),
-    (ErrorCode.BOT_CHECK, r"confirm you.?re not a bot|not a robot|captcha"),
+    # TikTok: pagina de desafio anti-bot (sem impersonation via curl_cffi)
+    (ErrorCode.BOT_CHECK, r"confirm you.?re not a bot|not a robot|captcha|unexpected response from webpage request"),
     (ErrorCode.COOKIES_ERROR, r"cookie(s)? database|decrypt with dpapi|could not (find|copy|load|decrypt).{0,40}cookie|"
                               r"netscape format cookies|unsupported browser|failed to (load|read) cookies|cookies? file"),
     (ErrorCode.FFMPEG_MISSING, r"ffmpeg (is )?not (found|installed)|ffprobe and ffmpeg not found|ffmpeg could not be found|"
                                r"ffmpeg.{0,20}(is )?required"),
-    (ErrorCode.AGE_RESTRICTED, r"age.?restrict|confirm your age|inappropriate for some users|age verification|age-gated"),
+    (ErrorCode.AGE_RESTRICTED, r"age.?restrict|confirm your age|inappropriate for some users|age verification|age-gated|"
+                               r"not be comfortable for some audiences"),
     (ErrorCode.PAYWALL, r"members.only|join this channel|only available (for|to) (subscribers|members|premium)|"
                         r"requires (a )?(payment|purchase|subscription)|paid (content|video)|rental|premium (content|members)"),
     (ErrorCode.PRIVATE, r"private video|video is private|is a private|account is private|private account|"
                         r"protected tweets|this (post|account) is private"),
     (ErrorCode.GEO_BLOCKED, r"not available in your (country|region)|geo.?restrict|not available from your location|"
-                            r"blocked in your (country|region)|uploader has not made this video available in your"),
+                            r"blocked in your (country|region)|uploader has not made this video available in your|"
+                            r"ip address is blocked"),
     (ErrorCode.LIVE_NOT_STARTED, r"live event will begin|premieres in|stream has not started|is an upcoming|"
                                  r"this live (event|stream) (will|has not)"),
     (ErrorCode.AUTH_REQUIRED, r"login required|log ?in (is )?required|sign in to (view|see|watch)|requires? (authentication|login|an account|sign.?in)|"
