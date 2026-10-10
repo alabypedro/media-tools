@@ -929,7 +929,9 @@ class EditorPage(QWidget):
 
     @property
     def running(self) -> bool:
-        return self._worker is not None and self._worker.is_alive()
+        # So termina quando o sinal final chega na interface (ele zera _worker): a thread
+        # pode morrer antes de os ultimos sinais de progresso (DONE) serem entregues.
+        return self._worker is not None
 
     @property
     def form(self) -> ToolForm:
