@@ -20,7 +20,8 @@ Exemplos:
     umd edit gato.gif --crop 10,10,200,150 --rotate 90
     umd edit gato.gif --speed 2 --reverse
     umd edit gato.gif --text "bom dia" --text-position top
-    umd edit logo.jpg --remove-bg                               fundo transparente (vira logo (editado).png)
+    umd edit foto.jpg --remove-bg                               fundo transparente com IA (vira foto (editado).png)
+    umd edit logo.png --remove-bg cor                           fundo liso: usa a cor das bordas
     umd edit logo.png --remove-bg "#ffffff" --bg-tolerance 25 --bg-all
     umd edit gato.gif --colors 64 --drop-every 2                GIF menor
     umd edit gato.gif --to mp4
@@ -97,13 +98,15 @@ def build_parser() -> argparse.ArgumentParser:
     group.add_argument("--background", metavar="COR", help="cor no lugar da transparencia (ex.: #ffffff)")
 
     group = parser.add_argument_group("remover fundo")
-    group.add_argument("--remove-bg", nargs="?", const="auto", metavar="COR",
-                       help="deixa o fundo transparente (sem COR, usa a cor das bordas)")
+    group.add_argument("--remove-bg", nargs="?", const="ia", metavar="COR",
+                       help="deixa o fundo transparente: sem valor, com IA (baixa o modelo na 1a vez); "
+                            "'cor' remove a cor das bordas; ou informe a cor (ex.: #ffffff)")
     group.add_argument("--bg-tolerance", type=float, default=15, metavar="%%",
-                       help="quanto a cor pode diferir do fundo (0-100, padrao 15)")
+                       help="por cor: quanto a cor pode diferir do fundo (0-100, padrao 15)")
     group.add_argument("--bg-all", action="store_true",
-                       help="remove a cor em toda a imagem, nao so o fundo ligado as bordas")
-    group.add_argument("--bg-feather", type=float, default=0, metavar="PX", help="suaviza a borda do recorte")
+                       help="por cor: remove a cor em toda a imagem, nao so o fundo ligado as bordas")
+    group.add_argument("--bg-feather", type=float, default=0, metavar="PX",
+                       help="por cor: suaviza a borda do recorte")
 
     group = parser.add_argument_group("texto, marca-d'agua e censura")
     group.add_argument("--text")
@@ -156,10 +159,12 @@ def options_from_args(args: argparse.Namespace) -> dict[str, Any]:
                               "scale": args.overlay_scale, "opacity": args.overlay_opacity}
     if args.censor:
         options["censor"] = {**args.censor, "mode": args.censor_mode}
-    if args.remove_bg is not None:
-        options["remove_bg"] = {"color": None if args.remove_bg == "auto" else args.remove_bg,
-                                "tolerance": args.bg_tolerance, "contiguous": not args.bg_all,
-                                "feather": args.bg_feather}
+    if args.remove_bg in ("ia", "ai"):
+        options["remove_bg"] = {"mode": "ai"}
+    elif args.remove_bg is not None:
+        color = None if args.remove_bg in ("cor", "color") else args.remove_bg
+        options["remove_bg"] = {"mode": "color", "color": color, "tolerance": args.bg_tolerance,
+                                "contiguous": not args.bg_all, "feather": args.bg_feather}
     options["format"] = args.format
     return options
 
@@ -171,9 +176,28 @@ def _target(args: argparse.Namespace, explicit: str | None, source: Path, suffix
     return tools.output_path(source, suffix, args.to or default_ext)
 
 
+def _download_model() -> None:
+    from . import ai_background
+
+    if ai_background.model_ready():
+        return
+    print(f"Baixando o modelo de IA para remover o fundo ({ai_background.MODEL_SIZE // 2**20} MB, so na primeira vez)...")
+    shown = [-1]
+
+    def progress(done: int, total: int) -> None:
+        percent = done * 100 // max(total, 1)
+        if percent // 10 != shown[0]:
+            shown[0] = percent // 10
+            print(f"  {percent}%", flush=True)
+
+    ai_background.ensure_model(progress)
+
+
 def run(args: argparse.Namespace) -> list[Path]:
     files = [Path(clean_path_arg(f)) for f in args.files]
     options = options_from_args(args)
+    if options.get("remove_bg", {}).get("mode") == "ai":
+        _download_model()
     if not files:
         raise ConversionError("Informe o arquivo de entrada.", hint="Veja os exemplos em: umd edit --help")
     if args.make:

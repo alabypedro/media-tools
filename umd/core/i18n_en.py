@@ -836,8 +836,17 @@ CATALOG: dict[str, str] = {
     "GIF → MP4/WebM, GIF ↔ WebP/APNG/AVIF, vídeo → animação. Escolha o formato em \"Salvar como\".":
         "GIF → MP4/WebM, GIF ↔ WebP/APNG/AVIF, video → animation. Choose the format in \"Save as\".",
     "Remover fundo": "Remove background",
-    "Deixa o fundo transparente. Funciona melhor com fundo de uma cor só (logo, print, foto de produto em fundo liso). Sem escolher a cor, usa a cor das bordas da imagem.":
-        "Makes the background transparent. Works best with a single-color background (logo, screenshot, product photo on a plain backdrop). Without choosing a color, it uses the color of the image's edges.",
+    "Deixa o fundo transparente. A IA reconhece pessoas, animais e objetos em qualquer fundo (como o remove.bg) e roda no seu computador: leva alguns segundos por imagem. Para logos e prints com fundo de uma cor só, use \"Por cor\".":
+        "Makes the background transparent. The AI recognizes people, animals and objects on any background (like remove.bg) and runs on your computer: it takes a few seconds per image. For logos and screenshots with a single-color background, use \"By color\".",
+    "Como remover:": "How to remove:",
+    "Automático com IA (pessoas, animais, objetos)": "Automatic with AI (people, animals, objects)",
+    "Por cor (fundo liso)": "By color (plain background)",
+    "Esta instalação não tem o componente de IA (onnxruntime). Use o modo \"Por cor\".":
+        "This installation does not have the AI component (onnxruntime). Use the \"By color\" mode.",
+    "Baixar a IA de remover fundo": "Download the background removal AI",
+    "Na primeira vez, o programa precisa baixar o modelo de IA ({size} MB). Depois ele fica no computador e funciona sem internet.\n\nBaixar agora?":
+        "The first time, the program needs to download the AI model ({size} MB). After that it stays on the computer and works offline.\n\nDownload now?",
+    "Baixando o modelo de IA… {done} de {total}": "Downloading the AI model… {done} of {total}",
     "sem fundo": "no background",
     "Dividir em quadros": "Split into frames",
     "Grava cada quadro como uma imagem, numa pasta \"nome (quadros)\" ao lado do original (ou num ZIP).":

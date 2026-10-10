@@ -293,31 +293,32 @@ def _logo(path: Path, background=(255, 255, 255), size=(60, 40)) -> Path:
 
 def test_remove_background_keeps_inner_holes_by_default(tmp_path: Path) -> None:
     src = _logo(tmp_path / "logo.jpg")
-    out, _ = read(edit(src, tmp_path / "a.png", {"remove_bg": {}}))
+    out, _ = read(edit(src, tmp_path / "a.png", {"remove_bg": {"mode": "color"}}))
     assert out[0].getpixel((2, 2))[3] == 0 and out[0].getpixel((59, 39))[3] == 0  # fundo
     assert out[0].getpixel((20, 15))[3] == 255  # desenho
     assert out[0].getpixel((30, 20))[3] == 255  # furo nao encosta na borda: fica
-    everywhere, _ = read(edit(src, tmp_path / "b.png", {"remove_bg": {"contiguous": False}}))
+    everywhere, _ = read(edit(src, tmp_path / "b.png", {"remove_bg": {"mode": "color", "contiguous": False}}))
     assert everywhere[0].getpixel((30, 20))[3] == 0 and everywhere[0].getpixel((20, 15))[3] == 255
 
 
 def test_remove_background_with_chosen_color_tolerance_and_feather(tmp_path: Path) -> None:
     src = _logo(tmp_path / "logo.png", background=(0, 200, 0))
-    wrong, _ = read(edit(src, tmp_path / "w.png", {"remove_bg": {"color": "#0000ff"}}))
+    wrong, _ = read(edit(src, tmp_path / "w.png", {"remove_bg": {"mode": "color", "color": "#0000ff"}}))
     assert wrong[0].getextrema()[3] == (255, 255)  # cor que nao existe: nada some
-    loose, _ = read(edit(src, tmp_path / "l.png", {"remove_bg": {"color": "#10d010", "tolerance": 15}}))
+    near = {"mode": "color", "color": "#10d010"}
+    loose, _ = read(edit(src, tmp_path / "l.png", {"remove_bg": {**near, "tolerance": 15}}))
     assert loose[0].getpixel((2, 2))[3] == 0
-    strict, _ = read(edit(src, tmp_path / "s.png", {"remove_bg": {"color": "#10d010", "tolerance": 0}}))
+    strict, _ = read(edit(src, tmp_path / "s.png", {"remove_bg": {**near, "tolerance": 0}}))
     assert strict[0].getpixel((2, 2))[3] == 255
-    soft, _ = read(edit(src, tmp_path / "f.png", {"remove_bg": {"feather": 2}}))
+    soft, _ = read(edit(src, tmp_path / "f.png", {"remove_bg": {"mode": "color", "feather": 2}}))
     assert 0 < soft[0].getpixel((15, 20))[3] < 255 and soft[0].getpixel((2, 2))[3] == 0
 
 
 def test_remove_background_on_animation_and_gif(gif: Path, tmp_path: Path) -> None:
-    frames, _ = read(edit(gif, tmp_path / "a.gif", {"remove_bg": {"color": "#ff0000"}}))
+    frames, _ = read(edit(gif, tmp_path / "a.gif", {"remove_bg": {"mode": "color", "color": "#ff0000"}}))
     assert frames[0].getpixel((5, 5))[3] == 0 and frames[1].getpixel((5, 5))[3] == 255
     with pytest.raises(ConversionError):
-        edit(gif, tmp_path / "a.mp4", {"remove_bg": {}})
+        edit(gif, tmp_path / "a.mp4", {"remove_bg": {"mode": "color"}})
 
 
 def test_remove_background_is_fast_on_big_images() -> None:
@@ -331,3 +332,46 @@ def test_remove_background_is_fast_on_big_images() -> None:
     result = clip_mod.remove_background(frame)
     assert time.perf_counter() - started < 5
     assert result.getpixel((0, 0))[3] == 0 and result.getpixel((1000, 700))[3] == 255
+
+
+def test_remove_background_with_ai_uses_the_model_mask(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    from PIL import Image
+
+    from umd.editor import ai_background
+
+    def fake_mask(frame):  # metade esquerda = primeiro plano
+        mask = Image.new("L", frame.size, 0)
+        mask.paste(255, (0, 0, frame.width // 2, frame.height))
+        return mask
+
+    monkeypatch.setattr(ai_background, "predict_mask", fake_mask)
+    src = make_png(tmp_path / "foto.jpg", (90, 140, 60), size=(40, 20))
+    out, _ = read(edit(src, tmp_path / "a.png", {"remove_bg": {"mode": "ai"}, "resize": {"percent": 50}}))
+    assert out[0].size == (20, 10)
+    assert out[0].getpixel((2, 5))[3] == 255 and out[0].getpixel((18, 5))[3] == 0
+
+
+def test_ai_model_download_checks_size_and_hash(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    import hashlib
+    import io
+
+    from umd.editor import ai_background
+
+    payload = b"modelo" * 1000
+
+    class Response(io.BytesIO):
+        def geturl(self) -> str:
+            return "https://release-assets.githubusercontent.com/x"
+
+    monkeypatch.setattr(ai_background, "model_path", lambda: tmp_path / "models" / "m.onnx")
+    monkeypatch.setattr(ai_background, "MODEL_SIZE", len(payload))
+    monkeypatch.setattr(ai_background.urllib.request, "urlopen", lambda *a, **k: Response(payload))
+    monkeypatch.setattr(ai_background, "MODEL_SHA256", "0" * 64)
+    with pytest.raises(ConversionError):
+        ai_background.ensure_model()
+    assert not ai_background.model_ready() and not list((tmp_path / "models").iterdir())  # nada fica pela metade
+
+    monkeypatch.setattr(ai_background, "MODEL_SHA256", hashlib.sha256(payload).hexdigest())
+    seen: list = []
+    assert ai_background.ensure_model(lambda done, total: seen.append(done)).read_bytes() == payload
+    assert ai_background.model_ready() and seen[-1] == len(payload)

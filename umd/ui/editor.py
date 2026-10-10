@@ -45,7 +45,7 @@ from ..convert.core.history import History
 from ..core.i18n import tr
 from ..core.logger import get_logger
 from ..downloader.progress import human_size
-from ..editor import tools
+from ..editor import ai_background, tools
 from ..editor.clip import CANCELLED_MESSAGE, FONTS, IMAGE_EXTS
 from ..editor.video import VIDEO_EXTS, MediaInfo, probe
 from ..media.ffmpeg import extract_frame, find_ffmpeg
@@ -70,6 +70,7 @@ DROP_LABELS = {0: "Manter todos os quadros", 2: "Remover 1 a cada 2 quadros", 3:
                4: "Remover 1 a cada 4 quadros"}
 EFFECT_LABELS = {"grayscale": "Preto e branco", "sepia": "Sépia", "invert": "Negativo", "sharpen": "Nitidez"}
 SPRITE_LABELS = {"make": "Animação → sprite sheet", "cut": "Sprite sheet → animação"}
+REMOVE_BG_LABELS = {"ai": "Automático com IA (pessoas, animais, objetos)", "color": "Por cor (fundo liso)"}
 assert set(FONT_LABELS) == set(FONTS)
 
 
@@ -216,6 +217,10 @@ class FileList(QWidget):
 # ---------------------------------------------------------------- ferramentas
 
 Job = Callable[[threading.Event], list[Path]]
+
+
+class Declined(Exception):
+    """O usuario desistiu numa pergunta do prepare(): nao roda nada e nao mostra erro."""
 
 
 class ToolForm(QWidget):
@@ -466,9 +471,12 @@ class EffectsForm(ToolForm):
 
 class RemoveBgForm(ToolForm):
     key, title, suffix = "remove_bg", "Remover fundo", "sem fundo"
-    hint = "Deixa o fundo transparente. Funciona melhor com fundo de uma cor só (logo, print, foto de produto em fundo liso). Sem escolher a cor, usa a cor das bordas da imagem."
+    hint = "Deixa o fundo transparente. A IA reconhece pessoas, animais e objetos em qualquer fundo (como o remove.bg) e roda no seu computador: leva alguns segundos por imagem. Para logos e prints com fundo de uma cor só, use \"Por cor\"."
 
     def build(self) -> None:
+        self.mode = _combo(REMOVE_BG_LABELS, "ai")
+        self.mode.currentIndexChanged.connect(self._mode_changed)
+        self.form.addRow(tr("Como remover:"), self.mode)
         self.use_color = QCheckBox(tr("Cor do fundo:"))
         self.color = ColorField("#ffffff")
         self.color.setEnabled(False)
@@ -484,6 +492,12 @@ class RemoveBgForm(ToolForm):
         self.form.addRow(tr("Tolerância:"), self.tolerance)
         self.form.addRow(self.contiguous)
         self.form.addRow(tr("Suavizar bordas:"), self.feather)
+        self._mode_changed()
+
+    def _mode_changed(self) -> None:
+        by_color = self.mode.currentData() == "color"
+        for row in range(1, self.form.rowCount()):
+            self.form.setRowVisible(row, by_color)
 
     def targets(self, info: MediaInfo | None) -> list[str]:
         if info is None:
@@ -493,9 +507,33 @@ class RemoveBgForm(ToolForm):
         return list(dict.fromkeys([ext, *choices])) if ext in choices else choices
 
     def options(self) -> dict[str, Any]:
-        return {"remove_bg": {"color": self.color.value() if self.use_color.isChecked() else None,
+        if self.mode.currentData() == "ai":
+            return {"remove_bg": {"mode": "ai"}}
+        return {"remove_bg": {"mode": "color", "color": self.color.value() if self.use_color.isChecked() else None,
                               "tolerance": self.tolerance.value(), "contiguous": self.contiguous.isChecked(),
                               "feather": self.feather.value()}}
+
+    def prepare(self, source: Path | None, target: str, out_dir: Path | None) -> Job:
+        job = super().prepare(source, target, out_dir)
+        if self.mode.currentData() != "ai" or ai_background.model_ready():
+            return job
+        if not ai_background.is_available():
+            raise ValueError(tr("Esta instalação não tem o componente de IA (onnxruntime). Use o modo \"Por cor\"."))
+        answer = QMessageBox.question(self, tr("Baixar a IA de remover fundo"), tr(
+            "Na primeira vez, o programa precisa baixar o modelo de IA ({size} MB). Depois ele fica no "
+            "computador e funciona sem internet.\n\nBaixar agora?", size=ai_background.MODEL_SIZE // 2**20))
+        if answer != QMessageBox.StandardButton.Yes:
+            raise Declined
+        report = self.page.report_progress
+
+        def download_then_run(cancel: threading.Event) -> list[Path]:
+            ai_background.ensure_model(lambda done, total: report(
+                tr("Baixando o modelo de IA… {done} de {total}", done=human_size(done), total=human_size(total)),
+                done * 100 // max(total, 1)), cancel)
+            report(tr("Processando: {tool}…", tool=tr(self.title)), -1)
+            return job(cancel)
+
+        return download_then_run
 
 
 class TextForm(ToolForm):
@@ -752,6 +790,7 @@ TOOL_FORMS: tuple[type[ToolForm], ...] = (
 class _Signals(QObject):
     done = Signal(object)  # list[Path]
     failed = Signal(str)
+    progress = Signal(str, int)  # texto, porcentagem (-1 = sem porcentagem)
 
 
 class EditorPage(QWidget):
@@ -769,6 +808,7 @@ class EditorPage(QWidget):
         self._signals = _Signals(self)
         self._signals.done.connect(self._on_done)
         self._signals.failed.connect(self._on_failed)
+        self._signals.progress.connect(self._on_progress)
         self.setAcceptDrops(True)
         self._build()
 
@@ -1059,6 +1099,8 @@ class EditorPage(QWidget):
         out_text = self.output_dir.text().strip()
         try:
             job = form.prepare(self.source, target, Path(out_text) if out_text else None)
+        except Declined:
+            return
         except ValueError as exc:
             info_box(self, tr(form.title), str(exc))
             return
@@ -1088,6 +1130,20 @@ class EditorPage(QWidget):
         self._worker = threading.Thread(target=work, name="umd-editor", daemon=True)
         self._worker.start()
         self._update_buttons()
+
+    def report_progress(self, text: str, percent: int = -1) -> None:
+        """Pode ser chamado da thread do trabalho: o sinal leva para a thread da interface."""
+        self._signals.progress.emit(text, percent)
+
+    def _on_progress(self, text: str, percent: int) -> None:
+        if not self.running:
+            return
+        self.status_label.setText(text)
+        if percent < 0:
+            self.progress.setRange(0, 0)
+        else:
+            self.progress.setRange(0, 100)
+            self.progress.setValue(percent)
 
     def _finish(self, value: int) -> None:
         if self._worker is not None:

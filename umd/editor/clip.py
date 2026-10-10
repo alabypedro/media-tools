@@ -7,7 +7,8 @@ operacoes sao aplicadas sempre nesta ordem, nao importa a ordem das chaves:
     start/end (s)     recorta o tempo
     drop_every (n)    remove 1 a cada n quadros
     crop              {x, y, width, height}
-    remove_bg         {color (None = a cor das bordas), tolerance (0-100), contiguous, feather (px)}
+    remove_bg         {mode: ai (padrao, ver ai_background.py) | color}; no modo color tambem
+                      {color (None = a cor das bordas), tolerance (0-100), contiguous, feather (px)}
     resize            {width, height, keep_aspect} ou {percent}
     rotate (graus, sentido horario), flip_h, flip_v
     grayscale, sepia, invert, brightness, contrast, saturation (1.0 = igual),
@@ -485,6 +486,17 @@ def remove_background(frame, color: str | tuple | None = None, tolerance: float 
     return result
 
 
+def remove_background_ai(frame):
+    """Fundo transparente com a IA (pessoas, animais, objetos; o fundo pode ser qualquer coisa)."""
+    from PIL import ImageChops
+
+    from . import ai_background
+
+    result = frame.copy()
+    result.putalpha(ImageChops.multiply(frame.getchannel("A"), ai_background.predict_mask(frame)))
+    return result
+
+
 # ---------------------------------------------------------------- linha do tempo
 
 def _cut(clip: Clip, start: float | None, end: float | None) -> None:
@@ -543,8 +555,11 @@ def apply_ops(clip: Clip, options: dict[str, Any] | None = None,
             x, y, w, h = crop
             frame = frame.crop((x, y, x + w, y + h))
         if remove_bg is not None:  # antes de redimensionar: as bordas ainda nao foram misturadas com o fundo
-            frame = remove_background(frame, remove_bg.get("color"), remove_bg.get("tolerance", 15),
-                                      remove_bg.get("contiguous", True), remove_bg.get("feather", 0))
+            if remove_bg.get("mode", "ai") == "ai":
+                frame = remove_background_ai(frame)
+            else:
+                frame = remove_background(frame, remove_bg.get("color"), remove_bg.get("tolerance", 15),
+                                          remove_bg.get("contiguous", True), remove_bg.get("feather", 0))
         if frame.size != target:
             frame = frame.resize(target, Image.Resampling.LANCZOS)
         frame = _rotate(frame, angle, flip_h, flip_v)

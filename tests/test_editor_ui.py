@@ -152,13 +152,45 @@ def test_remove_background_tool(page, qtbot, tmp_path) -> None:
     page.open_file(make_png(tmp_path / "foto.png", (255, 255, 255), size=(40, 30)))
     form = page.select_tool("remove_bg")
     assert [page.format_combo.itemData(i) for i in range(page.format_combo.count())] == ["png", "webp", "gif"]
-    assert form.options() == {"remove_bg": {"color": None, "tolerance": 15, "contiguous": True, "feather": 0}}
+    assert form.options() == {"remove_bg": {"mode": "ai"}}
+    form.mode.setCurrentIndex(form.mode.findData("color"))
+    assert form.options() == {"remove_bg": {"mode": "color", "color": None, "tolerance": 15, "contiguous": True,
+                                            "feather": 0}}
     form.use_color.setChecked(True)
     assert form.options()["remove_bg"]["color"] == "#ffffff"
     out = _run(page, qtbot)
     assert out == tmp_path / "foto (sem fundo).png" and read(out)[0][0].getpixel((5, 5))[3] == 0
     page.open_file(make_png(tmp_path / "foto.jpg", (255, 255, 255)))
     assert page.format_combo.currentData() == "png"  # JPG nao tem transparencia
+
+
+def test_remove_background_ai_downloads_the_model_once(page, qtbot, tmp_path, monkeypatch) -> None:
+    from PIL import Image
+    from PySide6.QtWidgets import QMessageBox
+
+    from umd.editor import ai_background
+
+    ready = [False]
+    downloads: list = []
+
+    def ensure_model(progress=None, cancel_event=None):
+        downloads.append(1)
+        progress(50, 100)
+        ready[0] = True
+
+    monkeypatch.setattr(ai_background, "model_ready", lambda: ready[0])
+    monkeypatch.setattr(ai_background, "ensure_model", ensure_model)
+    monkeypatch.setattr(ai_background, "predict_mask", lambda frame: Image.new("L", frame.size, 0))
+    answers = [QMessageBox.StandardButton.No, QMessageBox.StandardButton.Yes]
+    monkeypatch.setattr("umd.ui.editor.QMessageBox.question", lambda *args: answers.pop(0))
+    page.open_file(make_png(tmp_path / "foto.png", (90, 140, 60)))
+    page.select_tool("remove_bg")
+    page.apply()  # recusou o download: nada roda e nenhum erro aparece
+    assert not page.running and not page.shown and not downloads
+    out = _run(page, qtbot)
+    assert downloads == [1] and read(out)[0][0].getpixel((5, 5))[3] == 0
+    _run(page, qtbot)  # modelo ja baixado: nao pergunta de novo
+    assert downloads == [1] and not answers
 
 
 def test_invalid_form_shows_message_and_does_not_start(page, tmp_path) -> None:

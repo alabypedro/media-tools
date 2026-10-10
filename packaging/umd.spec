@@ -33,7 +33,8 @@ hidden = collect_submodules("gallery_dl") + collect_submodules("umd.convert") + 
 ]
 common_excludes = [
     "imageio_ffmpeg",  # o ffmpeg vai empacotado a parte (pasta ffmpeg/)
-    "tkinter", "matplotlib", "numpy", "pandas", "scipy", "IPython", "pytest", "PyInstaller",
+    "tkinter", "matplotlib", "pandas", "scipy", "IPython", "pytest", "PyInstaller",
+    # numpy fica: o onnxruntime (IA de remover fundo, umd/editor/ai_background.py) precisa dele
 ]
 qt_excludes = [
     "PySide6.QtWebEngineCore", "PySide6.QtWebEngineWidgets", "PySide6.QtWebEngineQuick", "PySide6.QtQuick",
