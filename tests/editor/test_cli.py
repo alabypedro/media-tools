@@ -91,3 +91,15 @@ def test_video_to_gif_and_merge(sample_video: Path, tmp_path: Path) -> None:
     merged = tmp_path / "m.mp4"
     assert cli.main(["--merge", str(sample_video), str(sample_video), "-o", str(merged)]) == 0
     assert merged.exists()
+
+
+def test_remove_background_defaults_to_png_and_parses_options(tmp_path: Path, capsys) -> None:
+    src = make_png(tmp_path / "logo.jpg", (255, 255, 255))
+    assert cli.main([str(src), "--remove-bg"]) == 0
+    out = tmp_path / "logo (editado).png"  # JPG nao guarda transparencia
+    assert read(out)[0][0].getpixel((1, 1))[3] == 0
+    args = cli.build_parser().parse_args([str(src), "--remove-bg", "#00ff00", "--bg-tolerance", "30", "--bg-all",
+                                          "--bg-feather", "1"])
+    assert cli.options_from_args(args)["remove_bg"] == {"color": "#00ff00", "tolerance": 30, "contiguous": False,
+                                                        "feather": 1}
+    assert "remove_bg" not in cli.options_from_args(cli.build_parser().parse_args([str(src)]))

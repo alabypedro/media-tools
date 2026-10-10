@@ -277,3 +277,57 @@ def test_corrupt_file_is_a_friendly_error(tmp_path: Path) -> None:
     bad.write_bytes(b"nao e um gif")
     with pytest.raises(ConversionError):
         load_clip(bad)
+
+
+def _logo(path: Path, background=(255, 255, 255), size=(60, 40)) -> Path:
+    """Quadrado vermelho com um furo da cor do fundo no meio, sobre fundo liso."""
+    from PIL import Image
+
+    img = Image.new("RGB", size, background)
+    img.paste((200, 30, 30), (15, 10, 45, 30))
+    img.paste(background, (25, 17, 35, 23))
+    path.parent.mkdir(parents=True, exist_ok=True)
+    img.save(path)
+    return path
+
+
+def test_remove_background_keeps_inner_holes_by_default(tmp_path: Path) -> None:
+    src = _logo(tmp_path / "logo.jpg")
+    out, _ = read(edit(src, tmp_path / "a.png", {"remove_bg": {}}))
+    assert out[0].getpixel((2, 2))[3] == 0 and out[0].getpixel((59, 39))[3] == 0  # fundo
+    assert out[0].getpixel((20, 15))[3] == 255  # desenho
+    assert out[0].getpixel((30, 20))[3] == 255  # furo nao encosta na borda: fica
+    everywhere, _ = read(edit(src, tmp_path / "b.png", {"remove_bg": {"contiguous": False}}))
+    assert everywhere[0].getpixel((30, 20))[3] == 0 and everywhere[0].getpixel((20, 15))[3] == 255
+
+
+def test_remove_background_with_chosen_color_tolerance_and_feather(tmp_path: Path) -> None:
+    src = _logo(tmp_path / "logo.png", background=(0, 200, 0))
+    wrong, _ = read(edit(src, tmp_path / "w.png", {"remove_bg": {"color": "#0000ff"}}))
+    assert wrong[0].getextrema()[3] == (255, 255)  # cor que nao existe: nada some
+    loose, _ = read(edit(src, tmp_path / "l.png", {"remove_bg": {"color": "#10d010", "tolerance": 15}}))
+    assert loose[0].getpixel((2, 2))[3] == 0
+    strict, _ = read(edit(src, tmp_path / "s.png", {"remove_bg": {"color": "#10d010", "tolerance": 0}}))
+    assert strict[0].getpixel((2, 2))[3] == 255
+    soft, _ = read(edit(src, tmp_path / "f.png", {"remove_bg": {"feather": 2}}))
+    assert 0 < soft[0].getpixel((15, 20))[3] < 255 and soft[0].getpixel((2, 2))[3] == 0
+
+
+def test_remove_background_on_animation_and_gif(gif: Path, tmp_path: Path) -> None:
+    frames, _ = read(edit(gif, tmp_path / "a.gif", {"remove_bg": {"color": "#ff0000"}}))
+    assert frames[0].getpixel((5, 5))[3] == 0 and frames[1].getpixel((5, 5))[3] == 255
+    with pytest.raises(ConversionError):
+        edit(gif, tmp_path / "a.mp4", {"remove_bg": {}})
+
+
+def test_remove_background_is_fast_on_big_images() -> None:
+    import time
+
+    from PIL import Image
+
+    frame = Image.new("RGBA", (2000, 1500), (255, 255, 255, 255))
+    frame.paste((0, 0, 0, 255), (500, 400, 1500, 1100))
+    started = time.perf_counter()
+    result = clip_mod.remove_background(frame)
+    assert time.perf_counter() - started < 5
+    assert result.getpixel((0, 0))[3] == 0 and result.getpixel((1000, 700))[3] == 255

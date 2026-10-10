@@ -54,6 +54,9 @@ def edit(input_path: Path, output: Path, options: dict[str, Any] | None = None,
     (animacao/imagem de origem, ou video -> GIF/WebP/APNG/AVIF) passam pelos quadros.
     """
     options = options or {}
+    if options.get("remove_bg") is not None and is_video(output):
+        raise ConversionError("Video nao tem transparencia: nao da para remover o fundo gravando em video.",
+                              hint="Grave em PNG, WebP, GIF, APNG ou AVIF.")
     try:
         if is_video(input_path) and is_video(output):
             return transcode(input_path, output, options, cancel_event)

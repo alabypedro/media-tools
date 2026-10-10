@@ -148,6 +148,19 @@ def test_forms_build_the_expected_options(page, tmp_path) -> None:
     assert optimize.options()["colors"] == 32 and optimize.options()["drop_every"] == 2
 
 
+def test_remove_background_tool(page, qtbot, tmp_path) -> None:
+    page.open_file(make_png(tmp_path / "foto.png", (255, 255, 255), size=(40, 30)))
+    form = page.select_tool("remove_bg")
+    assert [page.format_combo.itemData(i) for i in range(page.format_combo.count())] == ["png", "webp", "gif"]
+    assert form.options() == {"remove_bg": {"color": None, "tolerance": 15, "contiguous": True, "feather": 0}}
+    form.use_color.setChecked(True)
+    assert form.options()["remove_bg"]["color"] == "#ffffff"
+    out = _run(page, qtbot)
+    assert out == tmp_path / "foto (sem fundo).png" and read(out)[0][0].getpixel((5, 5))[3] == 0
+    page.open_file(make_png(tmp_path / "foto.jpg", (255, 255, 255)))
+    assert page.format_combo.currentData() == "png"  # JPG nao tem transparencia
+
+
 def test_invalid_form_shows_message_and_does_not_start(page, tmp_path) -> None:
     page.open_file(make_gif(tmp_path / "a.gif"))
     page.select_tool("text")

@@ -7,6 +7,7 @@ operacoes sao aplicadas sempre nesta ordem, nao importa a ordem das chaves:
     start/end (s)     recorta o tempo
     drop_every (n)    remove 1 a cada n quadros
     crop              {x, y, width, height}
+    remove_bg         {color (None = a cor das bordas), tolerance (0-100), contiguous, feather (px)}
     resize            {width, height, keep_aspect} ou {percent}
     rotate (graus, sentido horario), flip_h, flip_v
     grayscale, sepia, invert, brightness, contrast, saturation (1.0 = igual),
@@ -408,6 +409,82 @@ def render_layer(size: tuple[int, int], options: dict[str, Any]):
     return layer
 
 
+def background_color(frame) -> tuple[int, int, int]:
+    """Cor do fundo adivinhada pelas bordas: a mediana de cada canal (aguenta ruido de JPG e um objeto encostando)."""
+    w, h = frame.size
+    rgb = frame.convert("RGB")
+    border = b"".join(rgb.crop(box).tobytes() for box in ((0, 0, w, 1), (0, h - 1, w, h), (0, 0, 1, h), (w - 1, 0, w, h)))
+    return tuple(sorted(border[channel::3])[len(border) // 6] for channel in range(3))  # type: ignore[return-value]
+
+
+_UNFILLED, _FILLED = 1, 2
+
+
+def _span_end(mask: bytearray, start: int, stop: int) -> int:
+    """Primeiro indice em [start, stop) que nao e _UNFILLED (ou stop)."""
+    ends = [i for i in (mask.find(0, start, stop), mask.find(_FILLED, start, stop)) if i >= 0]
+    return min(ends) if ends else stop
+
+
+def _span_start(mask: bytearray, start: int, stop: int) -> int:
+    """Inicio da sequencia de _UNFILLED que termina em stop (sem passar de start)."""
+    return max(mask.rfind(0, start, stop), mask.rfind(_FILLED, start, stop), start - 1) + 1
+
+
+def _fill_from_edges(mask: bytearray, width: int, height: int) -> None:
+    """Pinta de _FILLED as areas _UNFILLED que encostam na borda (preenchimento por linhas: rapido em Python
+    porque cada trecho da linha e achado com find/rfind, nao pixel a pixel)."""
+    seeds = [(x, y) for y in (0, height - 1) for x in range(width)]
+    seeds += [(x, y) for x in (0, width - 1) for y in range(1, height - 1)]
+    while seeds:
+        x, y = seeds.pop()
+        row = y * width
+        if mask[row + x] != _UNFILLED:
+            continue
+        left = _span_start(mask, row, row + x)
+        right = _span_end(mask, row + x, row + width)
+        mask[left:right] = bytes([_FILLED]) * (right - left)
+        for ny in (y - 1, y + 1):
+            if 0 <= ny < height:
+                start, stop = ny * width + left - row, ny * width + right - row
+                while start < stop:
+                    found = mask.find(_UNFILLED, start, stop)
+                    if found < 0:
+                        break
+                    seeds.append((found - ny * width, ny))
+                    start = _span_end(mask, found, stop)
+
+
+def remove_background(frame, color: str | tuple | None = None, tolerance: float = 15, contiguous: bool = True,
+                      feather: float = 0):
+    """Deixa transparente o fundo de cor (quase) uniforme. Com contiguous, so o que encosta na borda
+    some; sem, toda a cor parecida some (inclusive dentro do desenho, como o miolo de um "O")."""
+    from PIL import Image, ImageChops, ImageColor, ImageFilter
+
+    if color is None or color == "auto":
+        rgb_color = background_color(frame)
+    else:
+        rgb_color = ImageColor.getrgb(color)[:3] if isinstance(color, str) else tuple(color[:3])
+    limit = round(max(0.0, min(100.0, float(tolerance))) * 2.55)
+    rgb = frame.convert("RGB")
+    diff = ImageChops.difference(rgb, Image.new("RGB", frame.size, rgb_color)).split()
+    distance = ImageChops.lighter(ImageChops.lighter(diff[0], diff[1]), diff[2])  # maior diferenca entre os canais
+    alpha = frame.getchannel("A")
+    background = ImageChops.lighter(distance.point(lambda v: 255 if v <= limit else 0),
+                                    alpha.point(lambda v: 255 if v == 0 else 0))  # ja transparente = fundo
+    if contiguous:
+        mask = bytearray(background.point(lambda v: _UNFILLED if v else 0).tobytes())
+        _fill_from_edges(mask, *frame.size)
+        keep = Image.frombytes("L", frame.size, bytes(mask)).point(lambda v: 0 if v == _FILLED else 255)
+    else:
+        keep = background.point(lambda v: 0 if v else 255)
+    if feather:
+        keep = keep.filter(ImageFilter.GaussianBlur(float(feather)))
+    result = frame.copy()
+    result.putalpha(ImageChops.multiply(alpha, keep))
+    return result
+
+
 # ---------------------------------------------------------------- linha do tempo
 
 def _cut(clip: Clip, start: float | None, end: float | None) -> None:
@@ -450,6 +527,7 @@ def apply_ops(clip: Clip, options: dict[str, Any] | None = None,
         _merge_frames(clip, lambda index, _frame, _previous: (index + 1) % every == 0)
 
     crop = clamp_box(options.get("crop"), clip.size)
+    remove_bg = options.get("remove_bg")
     target = resize_size(crop[2:] if crop else clip.size, options.get("resize"))
     angle = float(options.get("rotate") or 0)
     flip_h, flip_v = bool(options.get("flip_h")), bool(options.get("flip_v"))
@@ -464,6 +542,9 @@ def apply_ops(clip: Clip, options: dict[str, Any] | None = None,
         if crop:
             x, y, w, h = crop
             frame = frame.crop((x, y, x + w, y + h))
+        if remove_bg is not None:  # antes de redimensionar: as bordas ainda nao foram misturadas com o fundo
+            frame = remove_background(frame, remove_bg.get("color"), remove_bg.get("tolerance", 15),
+                                      remove_bg.get("contiguous", True), remove_bg.get("feather", 0))
         if frame.size != target:
             frame = frame.resize(target, Image.Resampling.LANCZOS)
         frame = _rotate(frame, angle, flip_h, flip_v)

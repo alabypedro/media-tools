@@ -746,8 +746,8 @@ CATALOG: dict[str, str] = {
 
     # ------------------------------------------------------------ editor (GIF, animacoes e video)
     "Editor": "Editor",
-    "Ferramentas para GIFs, animações (WebP, APNG, AVIF) e vídeos: criar, redimensionar, cortar, girar, mudar a velocidade, escrever texto, otimizar e converter. Os originais nunca são alterados.":
-        "Tools for GIFs, animations (WebP, APNG, AVIF) and videos: create, resize, crop, rotate, change speed, add text, optimize and convert. The originals are never changed.",
+    "Ferramentas para GIFs, animações (WebP, APNG, AVIF) e vídeos: criar, redimensionar, cortar, girar, mudar a velocidade, remover o fundo, escrever texto, otimizar e converter. Os originais nunca são alterados.":
+        "Tools for GIFs, animations (WebP, APNG, AVIF) and videos: create, resize, crop, rotate, change speed, remove the background, add text, optimize and convert. The originals are never changed.",
     "Nenhum arquivo aberto": "No file open",
     "Arraste um GIF, imagem ou vídeo para esta tela, ou use o botão ao lado.":
         "Drag a GIF, image or video onto this screen, or use the button on the right.",
@@ -835,6 +835,10 @@ CATALOG: dict[str, str] = {
     "Converter formato": "Convert format",
     "GIF → MP4/WebM, GIF ↔ WebP/APNG/AVIF, vídeo → animação. Escolha o formato em \"Salvar como\".":
         "GIF → MP4/WebM, GIF ↔ WebP/APNG/AVIF, video → animation. Choose the format in \"Save as\".",
+    "Remover fundo": "Remove background",
+    "Deixa o fundo transparente. Funciona melhor com fundo de uma cor só (logo, print, foto de produto em fundo liso). Sem escolher a cor, usa a cor das bordas da imagem.":
+        "Makes the background transparent. Works best with a single-color background (logo, screenshot, product photo on a plain backdrop). Without choosing a color, it uses the color of the image's edges.",
+    "sem fundo": "no background",
     "Dividir em quadros": "Split into frames",
     "Grava cada quadro como uma imagem, numa pasta \"nome (quadros)\" ao lado do original (ou num ZIP).":
         "Saves each frame as an image, in a \"name (quadros)\" folder next to the original (or in a ZIP).",
@@ -883,6 +887,16 @@ CATALOG: dict[str, str] = {
     "Sem desfoque": "No blur",
     "Trocar a transparência por uma cor:": "Replace transparency with a color:",
     "Escolha pelo menos um efeito.": "Choose at least one effect.",
+    "Cor do fundo:": "Background color:",
+    "Desmarcado, a cor é adivinhada pelas bordas da imagem": "When unchecked, the color is guessed from the image's edges",
+    "Tolerância:": "Tolerance:",
+    "Quanto uma cor pode diferir do fundo e ainda sumir. Aumente se sobrar contorno do fundo; diminua se sumir parte do desenho.":
+        "How much a color may differ from the background and still be removed. Increase it if a background outline is left; decrease it if part of the picture disappears.",
+    "Só o fundo ligado às bordas (mantém partes de dentro com a mesma cor)":
+        "Only the background touching the edges (keeps inner parts of the same color)",
+    "Suavizar bordas:": "Soften edges:",
+    "Sem suavização": "No softening",
+    "Deixa a borda do recorte mais macia": "Makes the cut-out edge softer",
     "Digite o texto": "Type the text",
     "Digite o texto.": "Type the text.",
     "Tamanho:": "Size:",

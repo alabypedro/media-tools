@@ -1,6 +1,6 @@
 """Tela Editor: ferramentas de GIF, animacao e video no estilo do ezgif.com
 (criar GIF, video -> GIF, redimensionar, cortar, girar, velocidade, efeitos,
-texto, marca-d'agua, censurar, otimizar, dividir em quadros, sprite sheet,
+remover fundo, texto, marca-d'agua, censurar, otimizar, dividir em quadros, sprite sheet,
 GIF -> MP4, juntar videos).
 
 Cada ferramenta e um formulario pequeno (ToolForm) que so sabe montar as
@@ -464,6 +464,40 @@ class EffectsForm(ToolForm):
         return options
 
 
+class RemoveBgForm(ToolForm):
+    key, title, suffix = "remove_bg", "Remover fundo", "sem fundo"
+    hint = "Deixa o fundo transparente. Funciona melhor com fundo de uma cor só (logo, print, foto de produto em fundo liso). Sem escolher a cor, usa a cor das bordas da imagem."
+
+    def build(self) -> None:
+        self.use_color = QCheckBox(tr("Cor do fundo:"))
+        self.color = ColorField("#ffffff")
+        self.color.setEnabled(False)
+        self.use_color.toggled.connect(self.color.setEnabled)
+        self.use_color.setToolTip(tr("Desmarcado, a cor é adivinhada pelas bordas da imagem"))
+        self.tolerance = _spin(0, 100, 15, " %")
+        self.tolerance.setToolTip(tr("Quanto uma cor pode diferir do fundo e ainda sumir. Aumente se sobrar contorno do fundo; diminua se sumir parte do desenho."))
+        self.contiguous = QCheckBox(tr("Só o fundo ligado às bordas (mantém partes de dentro com a mesma cor)"))
+        self.contiguous.setChecked(True)
+        self.feather = _spin(0, 10, 0, " px", tr("Sem suavização"))
+        self.feather.setToolTip(tr("Deixa a borda do recorte mais macia"))
+        self.form.addRow(self.use_color, self.color)
+        self.form.addRow(tr("Tolerância:"), self.tolerance)
+        self.form.addRow(self.contiguous)
+        self.form.addRow(tr("Suavizar bordas:"), self.feather)
+
+    def targets(self, info: MediaInfo | None) -> list[str]:
+        if info is None:
+            return []
+        ext = info.path.suffix.lower().lstrip(".")
+        choices = ["png", "webp", "gif"] if info.kind == "image" else animated_targets()
+        return list(dict.fromkeys([ext, *choices])) if ext in choices else choices
+
+    def options(self) -> dict[str, Any]:
+        return {"remove_bg": {"color": self.color.value() if self.use_color.isChecked() else None,
+                              "tolerance": self.tolerance.value(), "contiguous": self.contiguous.isChecked(),
+                              "feather": self.feather.value()}}
+
+
 class TextForm(ToolForm):
     key, title, suffix = "text", "Texto", "texto"
     hint = "Escreve uma legenda sobre a imagem (em todos os quadros). Use Enter para quebrar a linha."
@@ -708,8 +742,8 @@ class MergeForm(ToolForm):
 
 
 TOOL_FORMS: tuple[type[ToolForm], ...] = (
-    MakeForm, VideoToGifForm, ResizeForm, CropForm, RotateForm, CutForm, SpeedForm, EffectsForm, TextForm,
-    OverlayForm, CensorForm, OptimizeForm, ConvertForm, SplitForm, SpriteForm, MergeForm,
+    MakeForm, VideoToGifForm, ResizeForm, CropForm, RotateForm, CutForm, SpeedForm, EffectsForm, RemoveBgForm,
+    TextForm, OverlayForm, CensorForm, OptimizeForm, ConvertForm, SplitForm, SpriteForm, MergeForm,
 )
 
 
@@ -746,7 +780,7 @@ class EditorPage(QWidget):
         layout.setSpacing(10)
         layout.addWidget(page_header(tr("Editor"), tr(
             "Ferramentas para GIFs, animações (WebP, APNG, AVIF) e vídeos: criar, redimensionar, cortar, "
-            "girar, mudar a velocidade, escrever texto, otimizar e converter. Os originais nunca são alterados.")))
+            "girar, mudar a velocidade, remover o fundo, escrever texto, otimizar e converter. Os originais nunca são alterados.")))
 
         top, top_layout = card()
         row = QHBoxLayout()
