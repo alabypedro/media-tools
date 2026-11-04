@@ -340,6 +340,108 @@ class ResizeForm(ToolForm):
                            "keep_aspect": self.keep.isChecked()}}
 
 
+SAME_FORMAT = "same"  # lote: cada arquivo continua no proprio formato
+
+
+def folder_files(folder: Path, suffix: str) -> list[Path]:
+    """Imagens, animacoes e videos da pasta (sem subpastas), sem os que ja sao resultado desta ferramenta."""
+    if not folder.is_dir():
+        return []
+    marker = f" ({suffix})"
+    return sorted((p for p in folder.iterdir()
+                   if p.is_file() and p.suffix.lower().lstrip(".") in {*IMAGE_EXTS, *VIDEO_EXTS}
+                   and not p.stem.endswith(marker)), key=lambda p: p.name.lower())
+
+
+class _FolderMixin:
+    """Modo lote: aplica a mesma edicao em todos os arquivos de uma pasta."""
+
+    batch_failures: list[str]
+
+    def add_folder(self, form: QFormLayout) -> None:
+        self.batch_failures = []
+        self.use_folder = QCheckBox(tr("Editar todos os arquivos de uma pasta (lote)"))
+        self.use_folder.setToolTip(tr("Aplica exatamente a mesma edição em cada imagem, GIF e vídeo da pasta "
+                                      "(sem subpastas). Os originais não são alterados."))
+        self.folder = QLineEdit()
+        self.folder.setPlaceholderText(tr("Pasta com os arquivos"))
+        self.folder.setClearButtonEnabled(True)
+        self.folder_pick = button(tr("Escolher…"))
+        self.folder_pick.clicked.connect(self._pick_folder)
+        self.folder_row = QWidget()
+        row = QHBoxLayout(self.folder_row)
+        row.setContentsMargins(0, 0, 0, 0)
+        row.addWidget(self.folder, 1)
+        row.addWidget(self.folder_pick)
+        form.addRow(self.use_folder)
+        form.addRow(tr("Pasta:"), self.folder_row)
+        self.use_folder.toggled.connect(self._folder_toggled)
+        self._folder_toggled(False)
+
+    @property
+    def folder_mode(self) -> bool:
+        return self.use_folder.isChecked()
+
+    @property
+    def needs_input(self) -> bool:  # type: ignore[override]
+        return not self.folder_mode
+
+    def _folder_toggled(self, checked: bool) -> None:
+        self.form.setRowVisible(self.folder_row, checked)
+        self.changed.emit()
+
+    def _pick_folder(self) -> None:
+        chosen = QFileDialog.getExistingDirectory(self, tr("Pasta com os arquivos"), self.folder.text())
+        if not chosen:
+            return
+        self.folder.setText(chosen)
+        files = folder_files(Path(chosen), tr(self.suffix))
+        # sem arquivo aberto, abre o primeiro da pasta: serve de previa e preenche os campos
+        if files and self.page.source is None:
+            self.page.open_file(files[0])
+
+    def targets(self, info: MediaInfo | None) -> list[str]:
+        return [SAME_FORMAT] if self.folder_mode else default_targets(info)
+
+    def prepare(self, source: Path | None, target: str, out_dir: Path | None) -> Job:
+        if not self.folder_mode:
+            return super().prepare(source, target, out_dir)  # type: ignore[misc]
+        text = self.folder.text().strip().strip('"')
+        if not text or not Path(text).is_dir():
+            raise ValueError(tr("Escolha a pasta com os arquivos."))
+        files = folder_files(Path(text), tr(self.suffix))
+        if not files:
+            raise ValueError(tr("A pasta não tem imagens, GIFs nem vídeos."))
+        options = {**self.page.base_options(), **self.options()}
+        suffix, page, failures = tr(self.suffix), self.page, self.batch_failures
+        failures.clear()
+
+        def job(cancel: threading.Event) -> list[Path]:
+            outputs: list[Path] = []
+            last_error: ConversionError | None = None
+            total = len(files)
+            for index, path in enumerate(files):
+                if cancel.is_set():
+                    raise ConversionError(CANCELLED_MESSAGE)
+                page.report_progress(tr("Arquivo {i} de {n}: {name}", i=index + 1, n=total, name=path.name),
+                                     round(index * 100 / total))
+                ext = path.suffix if target == SAME_FORMAT else target
+                output = tools.output_path(path, suffix, ext, out_dir)
+                try:
+                    outputs.append(tools.edit(path, output, options, cancel))
+                except ConversionError as exc:
+                    if exc.message == CANCELLED_MESSAGE:
+                        raise
+                    log.warning("lote: %s falhou: %s", path, exc.message)
+                    failures.append(f"{path.name}: {exc.user_message()}")
+                    last_error = exc
+            if not outputs and last_error is not None:
+                raise last_error
+            return outputs
+
+        return job
+
+
 class _BoxMixin:
     """Campos X, Y, largura e altura de uma area retangular."""
 
@@ -566,7 +668,7 @@ class TextForm(ToolForm):
                          "position": self.position.currentData()}}
 
 
-class OverlayForm(ToolForm):
+class OverlayForm(_FolderMixin, ToolForm):
     key, title, suffix = "overlay", "Marca-d'água", "marca"
     hint = "Coloca uma imagem (logo, figurinha) por cima. PNG com transparência funciona melhor."
 
@@ -586,6 +688,7 @@ class OverlayForm(ToolForm):
         self.form.addRow(tr("Posição:"), self.position)
         self.form.addRow(tr("Largura:"), self.scale)
         self.form.addRow(tr("Opacidade:"), self.opacity)
+        self.add_folder(self.form)
 
     def _pick(self) -> None:
         pattern = " ".join(f"*.{e}" for e in sorted(IMAGE_EXTS))
@@ -601,7 +704,7 @@ class OverlayForm(ToolForm):
                             "scale": self.scale.value() or None, "opacity": self.opacity.value()}}
 
 
-class CensorForm(_BoxMixin, ToolForm):
+class CensorForm(_FolderMixin, _BoxMixin, ToolForm):
     key, title, suffix = "censor", "Censurar área", "censurado"
     hint = "Esconde uma área retangular (rosto, placa, nome) em todos os quadros."
 
@@ -613,6 +716,7 @@ class CensorForm(_BoxMixin, ToolForm):
         self.bar.setToolTip(tr("Altura da faixa preta, em % da altura da imagem. Ela ocupa a largura toda e fica colada na base."))
         self.form.addRow(tr("Altura da faixa:"), self.bar)
         self.add_box(self.form)
+        self.add_folder(self.form)
         self._mode_changed()
 
     def _mode_changed(self) -> None:
@@ -814,6 +918,7 @@ class EditorPage(QWidget):
         self.source: Path | None = None
         self.info: MediaInfo | None = None
         self.result: Path | None = None
+        self._batch: _FolderMixin | None = None  # ferramenta rodando em lote (pasta)
         self._history: History | None = None
         self._cancel = threading.Event()
         self._worker: threading.Thread | None = None
@@ -969,7 +1074,7 @@ class EditorPage(QWidget):
         choices = self.form.targets(self.info)
         self.format_combo.clear()
         for ext in choices:
-            self.format_combo.addItem(ext.upper(), ext)
+            self.format_combo.addItem(tr("Mesmo formato de cada arquivo") if ext == SAME_FORMAT else ext.upper(), ext)
         self.format_combo.setEnabled(bool(choices))
         self._update_buttons()
 
@@ -1121,6 +1226,7 @@ class EditorPage(QWidget):
             info_box(self, tr(form.title), str(exc))
             return
         source = self.source if form.needs_input else None
+        self._batch = form if isinstance(form, _FolderMixin) and form.folder_mode else None
         self._cancel = threading.Event()
         cancel, signals, history = self._cancel, self._signals, self.history
         log.info("editor: %s -> %s", form.key, target)
@@ -1175,7 +1281,13 @@ class EditorPage(QWidget):
             return
         first: Path = outputs[0]
         self.result = first
-        if len(outputs) > 1:
+        if self._batch is not None:
+            failures = list(self._batch.batch_failures)
+            self.status_label.setText(tr("{n} arquivos editados em: {path}", n=len(outputs), path=str(first.parent)))
+            if failures:
+                QMessageBox.warning(self, tr("Alguns arquivos não foram editados"),
+                                    "\n".join(failures[:15]) + ("\n…" if len(failures) > 15 else ""))
+        elif len(outputs) > 1:
             self.status_label.setText(tr("{n} quadros gravados em: {path}", n=len(outputs), path=str(first.parent)))
         else:
             text = tr("Salvo: {path}", path=str(first))

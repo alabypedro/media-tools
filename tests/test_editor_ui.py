@@ -300,3 +300,43 @@ def test_drop_goes_to_the_list_of_the_current_tool(page, tmp_path) -> None:
     form = page.select_tool("make")
     drop()
     assert form.files.files == [gif]
+
+
+def test_censor_folder_batch_edits_every_file(page, qtbot, tmp_path, monkeypatch) -> None:
+    folder = tmp_path / "lote"
+    make_png(folder / "a.png", (255, 255, 255), size=(100, 100))
+    make_png(folder / "b.png", (255, 255, 255), size=(80, 60))
+    make_gif(folder / "c.gif", size=(60, 40))
+    (folder / "nota.txt").write_text("nao e midia")
+    make_png(folder / "velho (censurado).png")  # resultado de uma rodada anterior: fica de fora
+    form = page.select_tool("censor")
+    assert form.needs_input and page.format_combo.currentData() != "same"
+    monkeypatch.setattr("umd.ui.editor.QFileDialog.getExistingDirectory", lambda *a: str(folder))
+    form.use_folder.setChecked(True)
+    form._pick_folder()
+    assert not form.needs_input and page.source is not None  # abriu o primeiro arquivo como previa
+    assert page.format_combo.currentData() == "same" and page.apply_btn.isEnabled()
+    form.mode.setCurrentIndex(form.mode.findData("subtitle"))
+    out_dir = tmp_path / "saida"
+    out_dir.mkdir()
+    page.output_dir.setText(str(out_dir))
+    _run(page, qtbot)
+    names = sorted(p.name for p in out_dir.iterdir())
+    assert names == ["a (censurado).png", "b (censurado).png", "c (censurado).gif"]
+    frame = read(out_dir / "b (censurado).png")[0][0]
+    assert frame.size == (80, 60)
+    assert frame.getpixel((40, 58))[:3] == (0, 0, 0) and frame.getpixel((40, 5))[:3] == (255, 255, 255)
+    assert "3" in page.status_label.text()
+
+
+def test_overlay_folder_batch_needs_a_folder(page, tmp_path) -> None:
+    form = page.select_tool("overlay")
+    form.path.setText(str(make_png(tmp_path / "logo.png")))
+    form.use_folder.setChecked(True)
+    page.apply()
+    assert page.shown and not page.running
+    page.shown.clear()
+    (tmp_path / "vazia").mkdir()
+    form.folder.setText(str(tmp_path / "vazia"))
+    page.apply()
+    assert page.shown and not page.running

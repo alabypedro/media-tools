@@ -932,6 +932,16 @@ CATALOG: dict[str, str] = {
     "Tarja preta": "Black bar",
     "Faixa de legenda (embaixo)": "Subtitle bar (bottom)",
     "Altura da faixa:": "Bar height:",
+    "Editar todos os arquivos de uma pasta (lote)": "Edit every file in a folder (batch)",
+    "Aplica exatamente a mesma edição em cada imagem, GIF e vídeo da pasta (sem subpastas). Os originais não são alterados.":
+        "Applies exactly the same edit to every image, GIF and video in the folder (not subfolders). The originals are not changed.",
+    "Pasta com os arquivos": "Folder with the files",
+    "Escolha a pasta com os arquivos.": "Choose the folder with the files.",
+    "A pasta não tem imagens, GIFs nem vídeos.": "The folder has no images, GIFs or videos.",
+    "Arquivo {i} de {n}: {name}": "File {i} of {n}: {name}",
+    "Mesmo formato de cada arquivo": "Same format as each file",
+    "{n} arquivos editados em: {path}": "{n} files edited in: {path}",
+    "Alguns arquivos não foram editados": "Some files were not edited",
     "Altura da faixa preta, em % da altura da imagem. Ela ocupa a largura toda e fica colada na base.":
         "Height of the black bar, as % of the image height. It spans the full width and sits at the bottom.",
     "Cores (GIF/PNG):": "Colors (GIF/PNG):",
