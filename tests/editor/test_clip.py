@@ -155,6 +155,13 @@ def test_censor_modes_only_touch_the_box(tmp_path: Path) -> None:
         assert out[0].size == (60, 60)
 
 
+def test_subtitle_bar_spans_the_bottom(tmp_path: Path) -> None:
+    src = make_png(tmp_path / "s.png", (200, 50, 50), size=(80, 100))
+    out, _ = read(edit(src, tmp_path / "s2.png", {"censor": {"mode": "subtitle", "bar": 20}}))
+    assert out[0].getpixel((0, 80))[:3] == (0, 0, 0) and out[0].getpixel((79, 99))[:3] == (0, 0, 0)
+    assert out[0].getpixel((40, 79))[:3] == (200, 50, 50)
+
+
 def test_transparency_survives_gif_and_color_reduction(tmp_path: Path) -> None:
     gif = make_gif(tmp_path / "t.gif", transparent=True)
     for name, options in (("a.gif", {}), ("b.gif", {"colors": 8}), ("c.webp", {}), ("d.apng", {})):

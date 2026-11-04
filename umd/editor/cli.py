@@ -121,6 +121,8 @@ def build_parser() -> argparse.ArgumentParser:
     group.add_argument("--overlay-opacity", type=float, default=100, metavar="%%")
     group.add_argument("--censor", type=_box, metavar="X,Y,L,A")
     group.add_argument("--censor-mode", choices=CENSOR_MODES, default="blur")
+    group.add_argument("--subtitle-bar", type=float, metavar="%%",
+                       help="faixa preta de legenda na base, com esta altura em %% (dispensa --censor)")
 
     group = parser.add_argument_group("gravacao")
     group.add_argument("--colors", type=int, metavar="N", help="GIF/PNG: no maximo N cores (2-256)")
@@ -157,7 +159,9 @@ def options_from_args(args: argparse.Namespace) -> dict[str, Any]:
     if args.overlay:
         options["overlay"] = {"path": clean_path_arg(args.overlay), "position": args.overlay_position,
                               "scale": args.overlay_scale, "opacity": args.overlay_opacity}
-    if args.censor:
+    if args.subtitle_bar:
+        options["censor"] = {"mode": "subtitle", "bar": args.subtitle_bar}
+    elif args.censor:
         options["censor"] = {**args.censor, "mode": args.censor_mode}
     if args.remove_bg in ("ia", "ai"):
         options["remove_bg"] = {"mode": "ai"}

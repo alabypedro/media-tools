@@ -106,7 +106,7 @@ def test_video_text_overlay_and_censor(sample_video: Path, sample_png: Path, tmp
     assert brightest[0] < 80 and brightest[1] > 200
 
 
-@pytest.mark.parametrize("mode", ["blur", "black"])
+@pytest.mark.parametrize("mode", ["blur", "black", "subtitle"])
 def test_video_censor_modes(sample_video: Path, tmp_path: Path, mode: str) -> None:
     out = edit(sample_video, tmp_path / f"{mode}.webm", {
         "end": 0.4, "censor": {"x": 0, "y": 0, "width": 100, "height": 100, "mode": mode}})

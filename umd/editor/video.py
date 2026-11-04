@@ -24,6 +24,7 @@ from .clip import (
     CANCELLED_MESSAGE,
     Clip,
     _flatten,
+    censor_box,
     check_budget,
     check_cancel,
     clamp_box,
@@ -213,9 +214,9 @@ def video_filters(info: MediaInfo, options: dict[str, Any], has_layer: bool) -> 
 
     censor = options.get("censor")
     if censor:
-        x, y, w, h = clamp_box(censor, size)
+        x, y, w, h = censor_box(censor, size)
         mode = censor.get("mode", "blur")
-        if mode == "black":
+        if mode in ("black", "subtitle"):
             chain.append(f"drawbox=x={x}:y={y}:w={w}:h={h}:color=black:t=fill")
         else:
             effect = (f"scale={max(1, w // 12)}:{max(1, h // 12)},scale={w}:{h}:flags=neighbor" if mode == "pixelate"

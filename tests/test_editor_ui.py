@@ -124,6 +124,8 @@ def test_forms_build_the_expected_options(page, tmp_path) -> None:
     assert crop.options() == {"crop": {"x": 0, "y": 0, "width": 40, "height": 30}}
     censor = page.select_tool("censor")
     assert censor.options()["censor"] == {"x": 10, "y": 7, "width": 20, "height": 15, "mode": "blur"}
+    censor.mode.setCurrentIndex(censor.mode.findData("subtitle"))
+    assert censor.options()["censor"] == {"mode": "subtitle", "bar": 13}
     speed = page.select_tool("speed")
     speed.speed.setValue(200)
     speed.reverse.setChecked(True)

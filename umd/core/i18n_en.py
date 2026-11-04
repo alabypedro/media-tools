@@ -930,6 +930,10 @@ CATALOG: dict[str, str] = {
     "Desfocar": "Blur",
     "Pixelar": "Pixelate",
     "Tarja preta": "Black bar",
+    "Faixa de legenda (embaixo)": "Subtitle bar (bottom)",
+    "Altura da faixa:": "Bar height:",
+    "Altura da faixa preta, em % da altura da imagem. Ela ocupa a largura toda e fica colada na base.":
+        "Height of the black bar, as % of the image height. It spans the full width and sits at the bottom.",
     "Cores (GIF/PNG):": "Colors (GIF/PNG):",
     "Manter as cores": "Keep colors",
     "GIF e PNG: no máximo esta quantidade de cores (2 a 256)": "GIF and PNG: at most this many colors (2 to 256)",

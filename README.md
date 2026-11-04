@@ -306,6 +306,7 @@ umd edit gato.gif --speed 2 --reverse           também: --boomerang, --delay MS
 umd edit gato.gif --text "bom dia" --text-position top
 umd edit gato.gif --overlay logo.png --overlay-scale 20 --overlay-opacity 60
 umd edit gato.gif --censor 40,30,120,80 --censor-mode pixelate
+umd edit video.mp4 --subtitle-bar 13            faixa preta de legenda na base (13% da altura)
 umd edit gato.gif --colors 64 --drop-every 2    GIF menor
 umd edit gato.gif --to mp4                      GIF -> vídeo (também webp, apng, avif, webm...)
 umd edit video.mp4 --to gif --start 2 --end 6 --fps 12 --resize 480x

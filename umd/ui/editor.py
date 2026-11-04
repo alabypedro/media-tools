@@ -46,7 +46,7 @@ from ..core.i18n import tr
 from ..core.logger import get_logger
 from ..downloader.progress import human_size
 from ..editor import ai_background, tools
-from ..editor.clip import CANCELLED_MESSAGE, FONTS, IMAGE_EXTS
+from ..editor.clip import CANCELLED_MESSAGE, DEFAULT_SUBTITLE_BAR, FONTS, IMAGE_EXTS
 from ..editor.video import VIDEO_EXTS, MediaInfo, probe
 from ..media.ffmpeg import extract_frame, find_ffmpeg
 from ..services.context import AppContext
@@ -63,7 +63,8 @@ POSITION_LABELS = {
     "left": "À esquerda", "center": "No centro", "right": "À direita",
     "bottom-left": "Embaixo, à esquerda", "bottom": "Embaixo", "bottom-right": "Embaixo, à direita",
 }
-CENSOR_LABELS = {"blur": "Desfocar", "pixelate": "Pixelar", "black": "Tarja preta"}
+CENSOR_LABELS = {"blur": "Desfocar", "pixelate": "Pixelar", "black": "Tarja preta",
+                 "subtitle": "Faixa de legenda (embaixo)"}
 FONT_LABELS = {"impact": "Impact", "arial": "Arial", "times": "Times New Roman", "courier": "Courier New",
                "comic": "Comic Sans"}
 DROP_LABELS = {0: "Manter todos os quadros", 2: "Remover 1 a cada 2 quadros", 3: "Remover 1 a cada 3 quadros",
@@ -606,13 +607,26 @@ class CensorForm(_BoxMixin, ToolForm):
 
     def build(self) -> None:
         self.mode = _combo(CENSOR_LABELS, "blur")
+        self.mode.currentIndexChanged.connect(self._mode_changed)
         self.form.addRow(tr("Como esconder:"), self.mode)
+        self.bar = _spin(1, 100, DEFAULT_SUBTITLE_BAR, " %")
+        self.bar.setToolTip(tr("Altura da faixa preta, em % da altura da imagem. Ela ocupa a largura toda e fica colada na base."))
+        self.form.addRow(tr("Altura da faixa:"), self.bar)
         self.add_box(self.form)
+        self._mode_changed()
+
+    def _mode_changed(self) -> None:
+        subtitle = self.mode.currentData() == "subtitle"
+        self.form.setRowVisible(self.bar, subtitle)
+        for spin in self.box.values():
+            self.form.setRowVisible(spin, not subtitle)
 
     def set_info(self, info: MediaInfo | None) -> None:
         self.fill_box(info, 0.5)
 
     def options(self) -> dict[str, Any]:
+        if self.mode.currentData() == "subtitle":
+            return {"censor": {"mode": "subtitle", "bar": self.bar.value()}}
         return {"censor": {**self.box_options(), "mode": self.mode.currentData()}}
 
 

@@ -13,7 +13,9 @@ operacoes sao aplicadas sempre nesta ordem, nao importa a ordem das chaves:
     rotate (graus, sentido horario), flip_h, flip_v
     grayscale, sepia, invert, brightness, contrast, saturation (1.0 = igual),
     blur (raio), sharpen
-    censor            {x, y, width, height, mode: blur|pixelate|black}
+    censor            {x, y, width, height, mode: blur|pixelate|black} ou
+                      {mode: subtitle, bar (altura em % do quadro)}: faixa preta de
+                      legenda na largura toda, colada na base
     overlay           {path, position, scale (% da largura), opacity, x, y}
     text              {text, font, size, color, stroke_color, stroke_width, position, margin, x, y}
     background        cor que substitui a transparencia
@@ -42,7 +44,8 @@ MAX_CLIP_PIXELS = 400_000_000  # quadros x largura x altura (~1,6 GB em RGBA)
 POSITIONS = ("top-left", "top", "top-right", "left", "center", "right", "bottom-left", "bottom", "bottom-right")
 FONTS = {"impact": "impact.ttf", "arial": "arialbd.ttf", "times": "timesbd.ttf", "courier": "courbd.ttf",
          "comic": "comicbd.ttf"}
-CENSOR_MODES = ("blur", "pixelate", "black")
+CENSOR_MODES = ("blur", "pixelate", "black", "subtitle")
+DEFAULT_SUBTITLE_BAR = 13  # % da altura, parecido com o fundo de legenda das TVs
 
 _STATIC_FORMATS = {"jpg": "JPEG", "jpeg": "JPEG", "bmp": "BMP", "tif": "TIFF", "tiff": "TIFF", "ico": "ICO"}
 ANIMATED_EXTS = ("gif", "webp", "apng", "png", "avif")
@@ -338,12 +341,22 @@ def _effects(frame, options: dict[str, Any]):
     return rgb
 
 
+def censor_box(censor: dict[str, Any], size: tuple[int, int]) -> tuple[int, int, int, int]:
+    """Area escondida pelo censor; no modo subtitle e a faixa inteira de baixo."""
+    if censor.get("mode") == "subtitle":
+        width, height = size
+        percent = min(100.0, max(1.0, float(censor.get("bar") or DEFAULT_SUBTITLE_BAR)))
+        bar = min(height, max(1, round(height * percent / 100)))
+        return 0, height - bar, width, bar
+    return clamp_box(censor, size)
+
+
 def _censor(frame, box: tuple[int, int, int, int], mode: str):
     from PIL import Image, ImageFilter
 
     x, y, w, h = box
     region = frame.crop((x, y, x + w, y + h))
-    if mode == "black":
+    if mode in ("black", "subtitle"):
         region = Image.new("RGBA", (w, h), (0, 0, 0, 255))
     elif mode == "pixelate":
         small = (max(1, w // 12), max(1, h // 12))
@@ -566,7 +579,7 @@ def apply_ops(clip: Clip, options: dict[str, Any] | None = None,
         if effects:
             frame = _effects(frame, options)
         if censor:
-            frame = _censor(frame.copy(), clamp_box(censor, frame.size), censor.get("mode", "blur"))
+            frame = _censor(frame.copy(), censor_box(censor, frame.size), censor.get("mode", "blur"))
         if wants_layer:
             if layer is None:
                 layer = render_layer(frame.size, options)
