@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.2.7",
+    "date": "2026-11-04",
+    "notes": "Censurar área: novo modo 'Faixa de legenda (embaixo)' — faixa preta na largura toda, colada na base, com altura em % da imagem (também no CLI: --subtitle-bar)",
+    "installer": "UniversalMediaTools-Setup-1.2.7.exe",
+    "size_mb": 139,
+    "sha256": "67ee48f0178f74854ed64023a4a0bcb4dd719cbea2e15fc16899e7f54eb62868",
+    "download": "https://github.com/alabypedro/media-tools/releases/download/v1.2.7/UniversalMediaTools-Setup-1.2.7.exe",
+    "page": "https://github.com/alabypedro/media-tools/releases/tag/v1.2.7"
+  },
+  {
     "version": "1.2.6",
     "date": "2026-10-10",
     "notes": "png",
