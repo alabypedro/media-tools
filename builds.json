@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.2.8",
+    "date": "2026-11-04",
+    "notes": "Editor: Marca-d'água e Censurar área agora editam uma pasta inteira em lote (mesma edição em todas as imagens, GIFs e vídeos da pasta).",
+    "installer": "UniversalMediaTools-Setup-1.2.8.exe",
+    "size_mb": 139,
+    "sha256": "7847f91df96869be3b9aad852d31864ae489ae0a5f74324060317806bc94c2e2",
+    "download": "https://github.com/alabypedro/media-tools/releases/download/v1.2.8/UniversalMediaTools-Setup-1.2.8.exe",
+    "page": "https://github.com/alabypedro/media-tools/releases/tag/v1.2.8"
+  },
+  {
     "version": "1.2.7",
     "date": "2026-11-04",
     "notes": "Censurar área: novo modo 'Faixa de legenda (embaixo)' — faixa preta na largura toda, colada na base, com altura em % da imagem (também no CLI: --subtitle-bar)",
