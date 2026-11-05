@@ -31,6 +31,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QListWidget,
+    QListWidgetItem,
     QMessageBox,
     QPlainTextEdit,
     QProgressBar,
@@ -396,9 +397,18 @@ class _FolderMixin:
             return
         self.folder.setText(chosen)
         files = folder_files(Path(chosen), tr(self.suffix))
+        self.folder_changed(files)
         # sem arquivo aberto, abre o primeiro da pasta: serve de previa e preenche os campos
         if files and self.page.source is None:
             self.page.open_file(files[0])
+
+    def folder_changed(self, files: list[Path]) -> None:
+        """A pasta escolhida mudou (ferramentas com campos por arquivo usam isto)."""
+
+    def batch_plan(self, files: list[Path]) -> list[tuple[Path, dict[str, Any]]]:
+        """Arquivo -> opcoes. Por padrao, a mesma edicao em todos."""
+        options = self.options()  # type: ignore[attr-defined]
+        return [(path, options) for path in files]
 
     def targets(self, info: MediaInfo | None) -> list[str]:
         return [SAME_FORMAT] if self.folder_mode else default_targets(info)
@@ -412,15 +422,16 @@ class _FolderMixin:
         files = folder_files(Path(text), tr(self.suffix))
         if not files:
             raise ValueError(tr("A pasta não tem imagens, GIFs nem vídeos."))
-        options = {**self.page.base_options(), **self.options()}
+        base = self.page.base_options()
+        plan = [(path, {**base, **options}) for path, options in self.batch_plan(files)]
         suffix, page, failures = tr(self.suffix), self.page, self.batch_failures
         failures.clear()
 
         def job(cancel: threading.Event) -> list[Path]:
             outputs: list[Path] = []
             last_error: ConversionError | None = None
-            total = len(files)
-            for index, path in enumerate(files):
+            total = len(plan)
+            for index, (path, options) in enumerate(plan):
                 if cancel.is_set():
                     raise ConversionError(CANCELLED_MESSAGE)
                 page.report_progress(tr("Arquivo {i} de {n}: {name}", i=index + 1, n=total, name=path.name),
@@ -639,14 +650,16 @@ class RemoveBgForm(ToolForm):
         return download_then_run
 
 
-class TextForm(ToolForm):
+class TextForm(_FolderMixin, ToolForm):
     key, title, suffix = "text", "Texto", "texto"
     hint = "Escreve uma legenda sobre a imagem (em todos os quadros). Use Enter para quebrar a linha."
 
     def build(self) -> None:
+        self.texts: dict[Path, str] = {}  # lote: texto de cada arquivo da pasta
         self.text = QPlainTextEdit()
         self.text.setFixedHeight(70)
         self.text.setPlaceholderText(tr("Digite o texto"))
+        self.text.textChanged.connect(self._text_edited)
         self.form.addRow(self.text)
         self.font_combo = _combo(FONT_LABELS, "impact")
         self.size = _spin(0, 500, 0, " px", tr("Automático"))
@@ -658,14 +671,108 @@ class TextForm(ToolForm):
         self.form.addRow(tr("Cor:"), self.color)
         self.form.addRow(tr("Contorno:"), self.outline)
         self.form.addRow(tr("Posição:"), self.position)
+        self.add_folder(self.form)
+        self.use_folder.setToolTip(tr("Escreve um texto diferente em cada imagem, GIF e vídeo da pasta (sem subpastas): "
+                                      "escolha o arquivo na lista e digite o texto dele acima. Arquivos sem texto "
+                                      "ficam de fora. Os originais não são alterados."))
+        self.folder.editingFinished.connect(self._folder_typed)
+        self.file_list = QListWidget()
+        self.file_list.setMinimumHeight(140)
+        self.file_list.currentRowChanged.connect(self._file_selected)
+        self.copy_all = button(tr("Usar este texto em todos"))
+        self.copy_all.clicked.connect(self._copy_to_all)
+        self.list_box = QWidget()
+        box = QVBoxLayout(self.list_box)
+        box.setContentsMargins(0, 0, 0, 0)
+        box.addWidget(muted(tr("Escolha o arquivo na lista e digite o texto dele no campo acima. "
+                               "Arquivos sem texto não são editados.")))
+        box.addWidget(self.file_list)
+        box.addWidget(self.copy_all, 0, Qt.AlignmentFlag.AlignLeft)
+        self.form.addRow(self.list_box)
+        self._folder_toggled(self.folder_mode)
+
+    # ---- lote com um texto por arquivo
+
+    def _folder_toggled(self, checked: bool) -> None:
+        super()._folder_toggled(checked)
+        if hasattr(self, "list_box"):  # add_folder chama antes de a lista existir
+            self.form.setRowVisible(self.list_box, checked)
+            if checked:
+                self._folder_typed()
+
+    def _folder_typed(self) -> None:
+        text = self.folder.text().strip().strip('"')
+        self.folder_changed(folder_files(Path(text), tr(self.suffix)) if text else [])
+
+    def folder_changed(self, files: list[Path]) -> None:
+        if [self.file_list.item(i).data(Qt.ItemDataRole.UserRole) for i in range(self.file_list.count())] == files:
+            return
+        self.file_list.blockSignals(True)
+        self.file_list.clear()
+        for path in files:
+            item = QListWidgetItem()
+            item.setData(Qt.ItemDataRole.UserRole, path)
+            self.file_list.addItem(item)
+            self._label(item)
+        self.file_list.blockSignals(False)
+        if files:
+            self.file_list.setCurrentRow(0)
+
+    def _current_file(self) -> Path | None:
+        item = self.file_list.currentItem()
+        return item.data(Qt.ItemDataRole.UserRole) if item is not None else None
+
+    def _label(self, item: QListWidgetItem) -> None:
+        path: Path = item.data(Qt.ItemDataRole.UserRole)
+        caption = self.texts.get(path, "").strip()
+        if caption:
+            first = caption.splitlines()[0]
+            more = "…" if len(first) > 40 or len(caption.splitlines()) > 1 else ""
+            item.setText(f"✓  {path.name}  —  {first[:40]}{more}")
+        else:
+            item.setText(f"     {path.name}  —  {tr('(sem texto)')}")
+
+    def _file_selected(self, row: int) -> None:
+        path = self._current_file()
+        if path is None:
+            return
+        self.text.blockSignals(True)
+        self.text.setPlainText(self.texts.get(path, ""))
+        self.text.blockSignals(False)
+        if self.page.source != path and not self.page.running:
+            self.page.open_file(path)  # previa do arquivo escolhido
+
+    def _text_edited(self) -> None:
+        path = self._current_file() if self.folder_mode else None
+        if path is not None:
+            self.texts[path] = self.text.toPlainText()
+            self._label(self.file_list.currentItem())
+
+    def _copy_to_all(self) -> None:
+        caption = self.text.toPlainText()
+        for i in range(self.file_list.count()):
+            item = self.file_list.item(i)
+            self.texts[item.data(Qt.ItemDataRole.UserRole)] = caption
+            self._label(item)
+
+    def batch_plan(self, files: list[Path]) -> list[tuple[Path, dict[str, Any]]]:
+        style = self._style()
+        plan = [(path, {"text": {**style, "text": self.texts[path].strip()}})
+                for path in files if self.texts.get(path, "").strip()]
+        if not plan:
+            raise ValueError(tr("Digite o texto de pelo menos um arquivo da lista."))
+        return plan
+
+    def _style(self) -> dict[str, Any]:
+        return {"font": self.font_combo.currentData(), "size": self.size.value() or None,
+                "color": self.color.value(), "stroke_color": self.outline.value(),
+                "position": self.position.currentData()}
 
     def options(self) -> dict[str, Any]:
         caption = self.text.toPlainText().strip()
         if not caption:
             raise ValueError(tr("Digite o texto."))
-        return {"text": {"text": caption, "font": self.font_combo.currentData(), "size": self.size.value() or None,
-                         "color": self.color.value(), "stroke_color": self.outline.value(),
-                         "position": self.position.currentData()}}
+        return {"text": {"text": caption, **self._style()}}
 
 
 class OverlayForm(_FolderMixin, ToolForm):

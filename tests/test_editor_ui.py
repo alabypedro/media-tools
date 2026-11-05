@@ -329,6 +329,38 @@ def test_censor_folder_batch_edits_every_file(page, qtbot, tmp_path, monkeypatch
     assert "3" in page.status_label.text()
 
 
+def test_text_folder_batch_uses_one_text_per_file(page, qtbot, tmp_path, monkeypatch) -> None:
+    folder = tmp_path / "lote"
+    make_png(folder / "a.png", (0, 0, 0), size=(200, 120))
+    make_png(folder / "b.png", (0, 0, 0), size=(200, 120))
+    make_png(folder / "c.png", (0, 0, 0), size=(200, 120))
+    form = page.select_tool("text")
+    monkeypatch.setattr("umd.ui.editor.QFileDialog.getExistingDirectory", lambda *a: str(folder))
+    form.use_folder.setChecked(True)
+    form._pick_folder()
+    assert form.file_list.count() == 3 and page.source == folder / "a.png"
+    page.apply()  # nenhum texto ainda
+    assert page.shown and not page.running
+    page.shown.clear()
+    form.text.setPlainText("CIMA")
+    form.file_list.setCurrentRow(1)
+    assert form.text.toPlainText() == "" and page.source == folder / "b.png"
+    form.text.setPlainText("OUTRO")
+    form.file_list.setCurrentRow(0)
+    assert form.text.toPlainText() == "CIMA"
+    form.position.setCurrentIndex(form.position.findData("top"))
+    out_dir = tmp_path / "saida"
+    out_dir.mkdir()
+    page.output_dir.setText(str(out_dir))
+    _run(page, qtbot)
+    assert sorted(p.name for p in out_dir.iterdir()) == ["a (texto).png", "b (texto).png"]  # c ficou sem texto
+    assert form.texts[folder / "a.png"] == "CIMA" and form.texts[folder / "b.png"] == "OUTRO"
+    for name in ("a (texto).png", "b (texto).png"):
+        assert read(out_dir / name)[0][0].crop((0, 0, 200, 60)).convert("L").getextrema()[1] == 255
+    form._copy_to_all()
+    assert all(form.texts[folder / n] == "CIMA" for n in ("a.png", "b.png", "c.png"))
+
+
 def test_overlay_folder_batch_needs_a_folder(page, tmp_path) -> None:
     form = page.select_tool("overlay")
     form.path.setText(str(make_png(tmp_path / "logo.png")))

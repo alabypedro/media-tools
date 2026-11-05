@@ -936,6 +936,13 @@ CATALOG: dict[str, str] = {
     "Aplica exatamente a mesma edição em cada imagem, GIF e vídeo da pasta (sem subpastas). Os originais não são alterados.":
         "Applies exactly the same edit to every image, GIF and video in the folder (not subfolders). The originals are not changed.",
     "Pasta com os arquivos": "Folder with the files",
+    "Escreve um texto diferente em cada imagem, GIF e vídeo da pasta (sem subpastas): escolha o arquivo na lista e digite o texto dele acima. Arquivos sem texto ficam de fora. Os originais não são alterados.":
+        "Writes a different text on each image, GIF and video in the folder (not subfolders): pick the file in the list and type its text above. Files without text are skipped. The originals are not changed.",
+    "Escolha o arquivo na lista e digite o texto dele no campo acima. Arquivos sem texto não são editados.":
+        "Pick the file in the list and type its text in the field above. Files without text are not edited.",
+    "Usar este texto em todos": "Use this text for all",
+    "(sem texto)": "(no text)",
+    "Digite o texto de pelo menos um arquivo da lista.": "Type the text of at least one file in the list.",
     "Escolha a pasta com os arquivos.": "Choose the folder with the files.",
     "A pasta não tem imagens, GIFs nem vídeos.": "The folder has no images, GIFs or videos.",
     "Arquivo {i} de {n}: {name}": "File {i} of {n}: {name}",
