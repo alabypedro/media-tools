@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.2.9",
+    "date": "2026-11-05",
+    "notes": "Editor > Texto: modo pasta com um texto diferente para cada arquivo",
+    "installer": "UniversalMediaTools-Setup-1.2.9.exe",
+    "size_mb": 139,
+    "sha256": "f1e663761a15aed0ca4387d22078ee7f864e329a484318b1f0448c6ab2b18f2b",
+    "download": "https://github.com/alabypedro/media-tools/releases/download/v1.2.9/UniversalMediaTools-Setup-1.2.9.exe",
+    "page": "https://github.com/alabypedro/media-tools/releases/tag/v1.2.9"
+  },
+  {
     "version": "1.2.8",
     "date": "2026-11-04",
     "notes": "Editor: Marca-d'água e Censurar área agora editam uma pasta inteira em lote (mesma edição em todas as imagens, GIFs e vídeos da pasta).",
